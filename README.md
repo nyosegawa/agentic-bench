@@ -160,6 +160,8 @@ python .claude/skills/model-researcher/scripts/gpu_estimator.py --params 7B --qu
 | Modal | MODAL_TOKEN_ID/SECRET | $0.59–3.95/hr ($30/月無料) | サーバーレス |
 | beam.cloud | BEAM_TOKEN | $0.54–3.50/hr | 専用エンドポイント |
 
+> **Note:** プロバイダの無料枠・クレジット残量はランタイムで確認していない。HF Pro や Colab Pro のサブスク加入、Modal の無料クレジット残量はコード上の静的な仮定であり、実際の残量を API で問い合わせるわけではない。枠切れ時はエージェントが実行失敗を検知し、次に安いプロバイダへ自動フォールバックする。Colab は API ではなく Chrome MCP（ブラウザ自動操作）で実行するため、Chrome MCP 拡張が必要。
+
 ## 開発
 
 ```bash
