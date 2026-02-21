@@ -84,17 +84,37 @@ class TestRecommendGpu:
         assert "A100-40GB" not in gpu_names
         assert "A100-80GB" in gpu_names or "H100" in gpu_names
 
-    def test_sorted_by_cheapest_hourly(self):
+    def test_prepaid_providers_first(self):
         recs = recommend_gpu(10.0)
-        # Recommendations should be sorted by hourly rate (cheapest first)
-        rates = [r["hourly_rate_usd"] for r in recs if r["hourly_rate_usd"] is not None]
-        assert rates == sorted(rates)
+        # Prepaid providers (colab, modal) should come before pay-as-you-go
+        prepaid_indices = [i for i, r in enumerate(recs) if r["prepaid"]]
+        payg_indices = [i for i, r in enumerate(recs) if not r["prepaid"]]
+        if prepaid_indices and payg_indices:
+            assert max(prepaid_indices) < min(payg_indices)
 
-    def test_t4_cheapest_is_hf_endpoints(self):
+    def test_colab_before_hf_endpoints(self):
         recs = recommend_gpu(10.0)
+        # Colab (prepaid) should appear before hf_endpoints (pay-as-you-go) for same GPU
         t4_recs = [r for r in recs if r["gpu"] == "T4"]
-        # hf_endpoints T4 ($0.50) is cheapest
-        assert t4_recs[0]["provider"] == "hf_endpoints"
+        colab_idx = next(i for i, r in enumerate(t4_recs) if r["provider"] == "colab")
+        hfe_idx = next(i for i, r in enumerate(t4_recs) if r["provider"] == "hf_endpoints")
+        assert colab_idx < hfe_idx
+
+    def test_within_prepaid_sorted_by_rate(self):
+        recs = recommend_gpu(10.0)
+        prepaid_rates = [
+            r["hourly_rate_usd"] for r in recs if r["prepaid"] and r["hourly_rate_usd"] is not None
+        ]
+        assert prepaid_rates == sorted(prepaid_rates)
+
+    def test_within_payg_sorted_by_rate(self):
+        recs = recommend_gpu(10.0)
+        payg_rates = [
+            r["hourly_rate_usd"]
+            for r in recs
+            if not r["prepaid"] and r["hourly_rate_usd"] is not None
+        ]
+        assert payg_rates == sorted(payg_rates)
 
     def test_no_recommendation_for_huge(self):
         recs = recommend_gpu(200.0)  # 200GB — nothing fits

@@ -85,12 +85,35 @@ GPU_PRICING: dict[str, dict[str, float]] = {
     "beam": {"T4": 0.54, "A100-40GB": 2.75, "H100": 3.50},
 }
 
-# Monthly subscriptions context
-SUBSCRIPTION_COSTS: dict[str, dict[str, float | str]] = {
-    "hf_inference": {"monthly_usd": 9.0, "note": "HF Pro — included inference credits"},
-    "hf_endpoints": {"monthly_usd": 0.0, "note": "Pay-as-you-go, HF_TOKEN only"},
-    "colab": {"monthly_usd": 9.99, "note": "Colab Pro — included compute units"},
-    "modal": {"monthly_usd": 0.0, "note": "$30/mo free compute credits"},
+# Monthly subscriptions / free credits
+# prepaid=True means the user already pays a subscription or has free credits,
+# so the effective additional cost for a short benchmark is ~$0.
+SUBSCRIPTION_COSTS: dict[str, dict] = {
+    "hf_inference": {
+        "monthly_usd": 9.0,
+        "prepaid": True,
+        "note": "HF Pro — included inference credits",
+    },
+    "hf_endpoints": {
+        "monthly_usd": 0.0,
+        "prepaid": False,
+        "note": "Pay-as-you-go, HF_TOKEN only",
+    },
+    "colab": {
+        "monthly_usd": 9.99,
+        "prepaid": True,
+        "note": "Colab Pro — included compute units, effectively free",
+    },
+    "modal": {
+        "monthly_usd": 0.0,
+        "prepaid": True,
+        "note": "$30/mo free compute credits",
+    },
+    "beam": {
+        "monthly_usd": 0.0,
+        "prepaid": False,
+        "note": "Pay-as-you-go",
+    },
 }
 
 # Estimated benchmark duration in minutes by model type
@@ -166,7 +189,8 @@ def recommend_gpu(
                     continue
 
                 hourly = GPU_PRICING.get(provider, {}).get(gpu["name"])
-                free_tier = SUBSCRIPTION_COSTS.get(provider, {})
+                sub = SUBSCRIPTION_COSTS.get(provider, {})
+                is_prepaid = sub.get("prepaid", False)
 
                 rec: dict = {
                     "gpu": gpu["name"],
@@ -174,22 +198,25 @@ def recommend_gpu(
                     "provider": provider,
                     "cost_rank": PROVIDER_COST_RANK.get(provider, 99),
                     "hourly_rate_usd": hourly,
+                    "prepaid": is_prepaid,
                     "available": available.get(provider, True) if available else None,
                 }
 
-                # Add free tier / subscription info
-                if free_tier:
-                    monthly = free_tier.get("monthly_usd", 0)
-                    note = free_tier.get("note", "")
-                    if monthly > 0 or note:
-                        rec["subscription_note"] = note
+                # Add subscription / free tier info
+                note = sub.get("note", "")
+                if note:
+                    rec["subscription_note"] = note
 
                 suitable.append(rec)
 
-    # Sort: cheapest hourly rate first, then provider rank as tiebreaker
-    # None rates (unknown pricing) go last
+    # Sort priority:
+    #   1. Prepaid providers first (subscription/free credits → effective cost ~$0)
+    #   2. Then by hourly rate (cheapest first)
+    #   3. Then by provider rank as tiebreaker
+    #   4. None rates (unknown pricing) go last
     suitable.sort(
         key=lambda x: (
+            0 if x["prepaid"] else 1,
             x["hourly_rate_usd"] if x["hourly_rate_usd"] is not None else 999,
             x["cost_rank"],
         )
@@ -364,7 +391,7 @@ def main() -> None:
 
         if result["hf_inference_viable"]:
             print("  ★ HF Inference API is viable (recommended, free with HF Pro)")
-        print("Recommended GPUs (cheapest first):")
+        print("Recommended GPUs (prepaid first, then cheapest):")
         for rec in result["recommendations"]:
             if rec["provider"] == "hf_inference":
                 continue
@@ -372,10 +399,11 @@ def main() -> None:
             cost_str = f"~${cost:.2f}" if cost is not None else "N/A"
             rate = rec.get("hourly_rate_usd")
             rate_str = f"${rate:.2f}/hr" if rate is not None else "?"
+            prepaid_tag = " [prepaid]" if rec.get("prepaid") else ""
             sub_note = f"  ({rec['subscription_note']})" if rec.get("subscription_note") else ""
             print(
                 f"  {rec['gpu']} ({rec['vram_gb']}GB) on {rec['provider']}"
-                f"  — {rate_str}, est. {cost_str}{sub_note}"
+                f"  — {rate_str}, est. {cost_str}{prepaid_tag}{sub_note}"
             )
 
 
