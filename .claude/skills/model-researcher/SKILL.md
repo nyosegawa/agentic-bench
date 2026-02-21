@@ -44,16 +44,19 @@ If the script fails or the model is not on HuggingFace:
 - Search the web for the model's official page, paper, or GitHub repo
 - Manually gather: architecture, parameter count, input/output modalities, license
 
-### Step 2: Estimate VRAM Requirements
+### Step 2: Estimate VRAM and Cost
 
-Run the estimator:
+Run the estimator with model type for cost-aware recommendations:
 ```bash
-python .claude/skills/model-researcher/scripts/gpu_estimator.py --params PARAM_COUNT [--quant fp16|int8|int4]
+python .claude/skills/model-researcher/scripts/gpu_estimator.py \
+  --params PARAM_COUNT --quant fp16 --model-type llm --json
 ```
 
-This outputs recommended GPU and provider. Use this as a starting point; adjust based on:
+This outputs recommended GPU, provider, **and estimated cost per run**. Adjust based on:
 - Model-specific requirements (e.g., diffusion models need extra VRAM for image buffers)
 - Framework overhead (transformers vs vllm vs diffusers)
+
+Review the cost estimate and include it in the research summary. If multiple providers are viable, highlight the cheapest option.
 
 ### Step 3: Determine Model Type and Evaluation Strategy
 
@@ -95,9 +98,12 @@ Structure your findings as:
 - **VRAM Required**: {vram_estimate}
 - **Recommended GPU**: {gpu}
 - **Recommended Provider**: {provider}
+- **Estimated Cost**: {cost} (e.g., "~$0.53 on Modal A100-40GB, ~15min" or "Free via HF Inference API")
 - **Evaluation Strategy**: {brief description}
 - **Key Metrics**: {metrics to measure}
 ```
+
+Always present the cost estimate **before** proceeding to execution so the user can approve.
 
 ## Important
 

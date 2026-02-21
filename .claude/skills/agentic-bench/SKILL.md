@@ -38,14 +38,28 @@ Phase 3: Report (eval-reporter)
 Consult the **model-researcher** skill knowledge:
 
 1. Run `python .claude/skills/model-researcher/scripts/hf_model_info.py MODEL_ID --json`
-2. Run `python .claude/skills/model-researcher/scripts/gpu_estimator.py --params PARAMS --json`
-3. Read the appropriate eval guide from `.claude/skills/model-researcher/references/`:
-   - LLM → `eval-llm.md`
-   - Image gen → `eval-image.md`
-   - TTS → `eval-tts.md`
-   - Time series → `eval-timeseries.md`
+2. Run `python .claude/skills/model-researcher/scripts/hf_inference_check.py MODEL_ID --json`
+3. Run `python .claude/skills/model-researcher/scripts/gpu_estimator.py --params PARAMS --model-type TYPE --json`
+4. Read the appropriate eval guide from `.claude/skills/model-researcher/references/`
 
-Produce a research summary before proceeding.
+Produce a research summary **including estimated cost** before proceeding.
+
+### Cost Gate
+
+**Always present the cost estimate to the user before starting Phase 2.**
+
+Example output:
+```
+## Cost Estimate
+- Provider: Modal (A100-40GB)
+- Estimated duration: ~15 min
+- Estimated cost: ~$0.53
+- Alternative: HF Inference API (free, if available)
+
+Proceed with execution? [y/N]
+```
+
+If cost exceeds $5, explicitly warn and ask for confirmation. For free options (HF Inference API), proceed without asking.
 
 ## Phase 2: Execute
 

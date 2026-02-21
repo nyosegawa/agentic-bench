@@ -8,7 +8,15 @@ sys.path.insert(
     0, str(Path(__file__).resolve().parent.parent / ".claude/skills/model-researcher/scripts")
 )
 
-from gpu_estimator import estimate, estimate_vram, parse_param_count, recommend_gpu
+from gpu_estimator import (
+    BENCH_DURATION_MINUTES,
+    GPU_PRICING,
+    estimate,
+    estimate_cost,
+    estimate_vram,
+    parse_param_count,
+    recommend_gpu,
+)
 
 
 class TestParseParamCount:
@@ -101,3 +109,54 @@ class TestEstimate:
         assert result["estimated_vram_gb"] < 45
         gpu_names = [r["gpu"] for r in result["recommendations"]]
         assert "A100-40GB" in gpu_names
+
+    def test_estimate_includes_cost(self):
+        result = estimate(7_000_000_000, "fp16", "llm")
+        assert result["model_type"] == "llm"
+        for rec in result["recommendations"]:
+            assert "estimated_cost_usd" in rec
+            assert "hourly_rate_usd" in rec
+
+    def test_hf_inference_cost_is_zero(self):
+        result = estimate(7_000_000_000, "fp16", "llm")
+        hf_rec = [r for r in result["recommendations"] if r["provider"] == "hf_inference"]
+        assert len(hf_rec) == 1
+        assert hf_rec[0]["estimated_cost_usd"] == 0.0
+
+
+class TestEstimateCost:
+    def test_modal_a100_llm(self):
+        cost = estimate_cost("A100-40GB", "modal", "llm")
+        assert cost["provider"] == "modal"
+        assert cost["hourly_rate_usd"] == GPU_PRICING["modal"]["A100-40GB"]
+        assert cost["estimated_duration_min"] == BENCH_DURATION_MINUTES["llm"]
+        # 15 min at $2.10/hr = $0.525
+        assert 0.50 < cost["estimated_cost_usd"] < 0.60
+
+    def test_beam_h100_image_gen(self):
+        cost = estimate_cost("H100", "beam", "image-gen")
+        assert cost["estimated_duration_min"] == BENCH_DURATION_MINUTES["image-gen"]
+        # 20 min at $3.50/hr ≈ $1.17
+        assert 1.0 < cost["estimated_cost_usd"] < 1.5
+
+    def test_hf_inference_free(self):
+        cost = estimate_cost("cloud", "hf_inference", "llm")
+        assert cost["estimated_cost_usd"] == 0.0
+        assert "Free" in cost.get("note", "")
+
+    def test_unknown_gpu_returns_none(self):
+        cost = estimate_cost("RTX4090", "modal", "llm")
+        assert cost["estimated_cost_usd"] is None
+        assert cost["hourly_rate_usd"] is None
+
+    def test_custom_duration(self):
+        cost = estimate_cost("A100-40GB", "modal", "llm", duration_minutes=30.0)
+        assert cost["estimated_duration_min"] == 30.0
+        # 30 min at $2.10/hr = $1.05
+        assert 1.0 < cost["estimated_cost_usd"] < 1.10
+
+    def test_embedding_short_duration(self):
+        cost = estimate_cost("T4", "colab", "embedding")
+        assert cost["estimated_duration_min"] == BENCH_DURATION_MINUTES["embedding"]
+        # 5 min at $1.17/hr ≈ $0.10
+        assert cost["estimated_cost_usd"] < 0.15
