@@ -93,20 +93,38 @@ agentic-bench/
 ├── AGENTS.md / CLAUDE.md
 ├── .claude/
 │   └── skills/
-│       └── agentic-bench/               # 単一スキル（全てここに集約）
-│           ├── SKILL.md                 # 指示書
-│           ├── scripts/                 # ヘルパースクリプト（任意で実行）
-│           │   ├── hf_model_info.py     # HF model card 情報取得
-│           │   ├── gpu_estimator.py     # VRAM 推定
+│       ├── agentic-bench/               # オーケストレーター
+│       │   └── SKILL.md                 # 全体フロー: 調査→実行→レポート
+│       │
+│       ├── model-researcher/            # 調査フェーズ
+│       │   ├── SKILL.md                 # モデル調査・要件整理の戦略
+│       │   ├── scripts/
+│       │   │   ├── hf_model_info.py     # HF model card 情報取得
+│       │   │   └── gpu_estimator.py     # VRAM 推定
+│       │   └── references/              # モデル種別ごとの検証知識
+│       │       ├── eval-llm.md
+│       │       ├── eval-image.md
+│       │       ├── eval-tts.md
+│       │       └── eval-timeseries.md
+│       │
+│       ├── gpu-runner/                  # 実行フェーズ
+│       │   ├── SKILL.md                 # GPU クラウドでの実行戦略
+│       │   ├── scripts/                 # .env 読み込み等
+│       │   └── references/              # プロバイダ別ガイド
+│       │       ├── colab-chrome-mcp.md
+│       │       ├── modal.md
+│       │       └── beam-cloud.md
+│       │
+│       └── eval-reporter/               # レポートフェーズ
+│           ├── SKILL.md                 # レポート生成の戦略
+│           ├── scripts/
 │           │   ├── report_generator.py  # HTML レポート生成
 │           │   └── metrics_writer.py    # metrics.json 書き出し
-│           ├── references/              # 必要時ロード
-│           │   ├── beam-cloud.md        # beam.cloud SDK の使い方
-│           │   ├── colab-chrome-mcp.md  # Colab Chrome MCP 操作ガイド
-│           │   ├── modal.md             # Modal SDK の使い方
+│           ├── references/
 │           │   └── report-format.md     # レポート仕様
-│           └── assets/                  # テンプレート等
+│           └── assets/
 │               └── report_template.html
+│
 ├── docs/                                # 設計ドキュメント
 │   └── architecture.md
 ├── research/                            # 調査メモ
@@ -124,9 +142,11 @@ agentic-bench/
 ```
 
 **設計思想**:
-- スキルは `agentic-bench` 1つに集約。プロバイダ知識は references/ に分離
-- scripts/ は Agent が任意で使えるヘルパー。使わなくても良い
-- プロバイダが増えたら references/ にファイルを足すだけ
+- フローでスキルを分離: 調査 (model-researcher) → 実行 (gpu-runner) → レポート (eval-reporter)
+- 各スキルが自分のドメインの references/ だけ持つ → コンテキスト効率が良い
+- agentic-bench がオーケストレーターとして全体を制御
+- モデル種別が増えたら model-researcher/references/ に足す
+- プロバイダが増えたら gpu-runner/references/ に足す
 
 ---
 
@@ -160,19 +180,26 @@ agentic-bench/ で Claude セッション開始
 ユーザー: "Gemma 3 27B を検証して"
   │
   ▼
-[agentic-bench スキル発動]
+[agentic-bench スキル発動] ← オーケストレーター
   │
-  ├─ 1. 調査: HF model card を読む、要件把握
-  ├─ 2. 環境選択: VRAM 要件 → 最安プロバイダ選択
-  │      必要なら references/colab-chrome-mcp.md 等を参照
-  ├─ 3. コード生成: 推論スクリプトをその場で書く
-  │      scripts/ のヘルパーを使うか、ゼロから書くかは Agent が判断
-  ├─ 4. 実行: Colab (Chrome MCP) / Modal / beam.cloud で実行
-  │      ├─ 成功 → 出力を取得
-  │      └─ 失敗 → デバッグ → 修正 → 再実行
-  ├─ 5. 評価: 出力を見て判断（テキスト読む / 画像見る）
-  ├─ 6. 性能測定: 速度・コスト計測
-  └─ 7. レポート生成 → results/ に保存 → git commit
+  ├─ [model-researcher フェーズ]
+  │   ├─ HF model card を読む
+  │   ├─ モデル種別を判定 → references/eval-llm.md を参照
+  │   ├─ VRAM 要件を推定
+  │   └─ 最安プロバイダを選択
+  │
+  ├─ [gpu-runner フェーズ]
+  │   ├─ references/colab-chrome-mcp.md 等を参照
+  │   ├─ 推論スクリプトをその場で書く
+  │   ├─ GPU クラウドで実行
+  │   │   ├─ 成功 → 出力を取得
+  │   │   └─ 失敗 → デバッグ → 修正 → 再実行
+  │   └─ 性能測定: 速度・コスト計測
+  │
+  └─ [eval-reporter フェーズ]
+      ├─ 出力を見て評価（テキスト読む / 画像見る）
+      ├─ HTML レポート生成
+      └─ results/ に保存 → git commit
 
 results/2026-02-21_gemma3-27b/
 ├── report.html        ← 綺麗な最終レポート（公開用）
@@ -218,25 +245,45 @@ results/2026-02-21_gemma3-27b/
 
 ## Claude Code スキル (.claude/skills/)
 
-**スキルは `agentic-bench` 1つのみ。** プロバイダ知識は references/ で Progressive Disclosure。
+フロー × ドメイン知識でスキルを分離。各スキルが軽量で、自分の領域だけ知っている。
 
-### agentic-bench
+### agentic-bench (オーケストレーター)
 
 - **トリガー**: "〇〇を検証して", "モデルをベンチマーク", "新しいモデルを試して"
-- **動作**: model card を読む → 環境選択 → コードを書いて実行 → 出力を見て評価 → レポート
-- **自由度: 高い** — Agent が状況に応じて判断。固定パイプラインではない
+- **動作**: 全体フローを制御。model-researcher → gpu-runner → eval-reporter の順に進める
+- **自由度: 高い** — フロー自体を状況に応じて変える判断もする
 
-### Progressive Disclosure
+### model-researcher (調査フェーズ)
+
+- **役割**: モデルを調べて、何をどう検証すべきか整理する
+- **references/**: モデル種別ごとの検証知識（eval-llm.md, eval-image.md, eval-tts.md...）
+- **自由度: 高い** — 未知のモデル種別にも探索的に対応
+
+### gpu-runner (実行フェーズ)
+
+- **役割**: 適切な GPU クラウドでコードを実行する
+- **references/**: プロバイダ別ガイド（colab-chrome-mcp.md, modal.md, beam-cloud.md）
+- **scripts/**: .env 読み込み等のヘルパー
+- **自由度: 中** — プロバイダの API は決まっているが、実行内容は可変
+
+### eval-reporter (レポートフェーズ)
+
+- **役割**: 結果から HTML レポートと metrics.json を生成する
+- **scripts/**: report_generator.py, metrics_writer.py
+- **assets/**: report_template.html
+- **自由度: 中** — フォーマットは決まっているが、内容は Agent が書く
+
+### スキルチェーンのフロー
 
 ```
-SKILL.md (常時ロード)          → ゴール・戦略・判断基準・.env の使い方
-references/ (必要時ロード)     → プロバイダ別ガイド（beam-cloud.md, colab-chrome-mcp.md, modal.md）
-scripts/ (任意で実行)          → ヘルパースクリプト（.env を自動読み込み）
-assets/ (出力に使用)           → HTML テンプレート等
+agentic-bench (トリガー・全体制御)
+  → model-researcher (調査: 何のモデル？何を検証？どこで実行？)
+  → gpu-runner (実行: コード書いて GPU クラウドで動かす)
+  → eval-reporter (レポート: 結果を見て評価し、レポート生成)
 ```
 
-プロバイダが増えたら references/ にファイルを追加するだけ。
-スキル自体を分割する必要はない。
+SKILL.md 内で「次は model-researcher/references/ を参照」等と指示することでチェーンを実現。
+各スキルの references/ には自分のドメインの知識のみ → コンテキスト効率が良い。
 
 ---
 
@@ -246,12 +293,12 @@ assets/ (出力に使用)           → HTML テンプレート等
 - [x] 中間成果物: スクリプトは workspace/ に commit、ログは gitignore
 - [x] 結果の表示: HTML レポート（GitHub Pages で公開予定）
 - [x] OSS 化: MVP 完成後に public 化
-- [x] スキル構成: 単一スキル `agentic-bench` + references にプロバイダ知識
+- [x] スキル構成: フローでチェーン（agentic-bench → model-researcher → gpu-runner → eval-reporter）
 - [x] scripts/ は .env を python-dotenv で読む
 
 ## 未決定事項
 
-- [ ] SKILL.md の実装
+- [ ] SKILL.md の実装（agentic-bench, model-researcher, gpu-runner, eval-reporter）
 - [ ] HTML レポートのテンプレート設計
 - [ ] GitHub Pages での結果一覧ダッシュボード
 - [ ] .gitignore のルール策定
