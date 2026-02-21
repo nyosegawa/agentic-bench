@@ -1,5 +1,9 @@
 # RunPod Deep Dive Research (2026-02)
 
+**Official Documentation**: https://docs.runpod.io/
+**Pricing Page**: https://www.runpod.io/pricing
+**Python SDK (GitHub)**: https://github.com/runpod/runpod-python
+
 ## 1. Pricing Model
 
 ### Billing Structure
@@ -457,13 +461,3 @@ RunPod provides a Template Gallery with pre-built Docker images:
 ### Custom Templates
 You can create custom templates from any Docker image and share them in the Template Gallery.
 
----
-
-## Key Takeaways for agentic-bench
-
-1. **For benchmark automation**: Serverless is ideal -- submit inference jobs, pay only for execution time, auto-scale
-2. **SDK quality**: `pip install runpod` is mature and well-documented; both sync and async patterns supported
-3. **Cost comparison with beam.cloud**: RunPod serverless is slightly more expensive for A100 ($2.74/hr flex vs beam's $2.25/hr) but offers more GPU variety and better cold starts
-4. **No free tier**: Unlike Modal ($30/mo) or beam.cloud (one-time credits), RunPod requires payment upfront ($10 minimum)
-5. **Best for**: Production inference, wide GPU selection, teams needing both dev (pods) and prod (serverless) environments
-6. **Integration pattern**: Build Docker image with handler.py -> deploy as serverless endpoint -> submit jobs via Python SDK
