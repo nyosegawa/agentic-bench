@@ -46,17 +46,21 @@ If the script fails or the model is not on HuggingFace:
 
 ### Step 2: Estimate VRAM and Cost
 
-Run the estimator with model type for cost-aware recommendations:
+Run the estimator with `--check-env` to filter by available tokens and sort by cost:
 ```bash
 python .claude/skills/model-researcher/scripts/gpu_estimator.py \
-  --params PARAM_COUNT --quant fp16 --model-type llm --json
+  --params PARAM_COUNT --quant fp16 --model-type llm --check-env --json
 ```
 
-This outputs recommended GPU, provider, **and estimated cost per run**. Adjust based on:
+`--check-env` reads `.env` and:
+- Shows which providers have tokens set (✓/✗)
+- Filters out providers without required tokens
+- Sorts remaining by cheapest hourly rate
+- Shows free tier / subscription info
+
+Review the cost estimate and include it in the research summary. Adjust based on:
 - Model-specific requirements (e.g., diffusion models need extra VRAM for image buffers)
 - Framework overhead (transformers vs vllm vs diffusers)
-
-Review the cost estimate and include it in the research summary. If multiple providers are viable, highlight the cheapest option.
 
 ### Step 3: Determine Model Type and Evaluation Strategy
 

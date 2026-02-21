@@ -1,7 +1,9 @@
 """Tests for gpu_estimator.py — VRAM estimation and provider recommendation."""
 
+import os
 import sys
 from pathlib import Path
+from unittest import mock
 
 # Add scripts to path
 sys.path.insert(
@@ -11,6 +13,7 @@ sys.path.insert(
 from gpu_estimator import (
     BENCH_DURATION_MINUTES,
     GPU_PRICING,
+    check_available_providers,
     estimate,
     estimate_cost,
     estimate_vram,
@@ -128,6 +131,99 @@ class TestEstimate:
         hf_rec = [r for r in result["recommendations"] if r["provider"] == "hf_inference"]
         assert len(hf_rec) == 1
         assert hf_rec[0]["estimated_cost_usd"] == 0.0
+
+
+class TestCheckAvailableProviders:
+    def test_all_tokens_set(self):
+        env = {
+            "HF_TOKEN": "hf_xxx",
+            "MODAL_TOKEN_ID": "ak-xxx",
+            "MODAL_TOKEN_SECRET": "as-xxx",
+            "BEAM_TOKEN": "bt-xxx",
+        }
+        with mock.patch.dict(os.environ, env, clear=False):
+            available = check_available_providers()
+        assert available["hf_inference"] is True
+        assert available["hf_endpoints"] is True
+        assert available["colab"] is True  # no token needed
+        assert available["modal"] is True
+        assert available["beam"] is True
+
+    def test_only_hf_token(self):
+        env = {"HF_TOKEN": "hf_xxx"}
+        # Clear Modal/Beam tokens
+        with (
+            mock.patch.dict(os.environ, env, clear=False),
+            mock.patch.dict(
+                os.environ,
+                {"MODAL_TOKEN_ID": "", "MODAL_TOKEN_SECRET": "", "BEAM_TOKEN": ""},
+            ),
+        ):
+            available = check_available_providers()
+        assert available["hf_inference"] is True
+        assert available["hf_endpoints"] is True
+        assert available["colab"] is True
+        assert available["modal"] is False
+        assert available["beam"] is False
+
+    def test_no_tokens(self):
+        with mock.patch.dict(
+            os.environ,
+            {"HF_TOKEN": "", "MODAL_TOKEN_ID": "", "MODAL_TOKEN_SECRET": "", "BEAM_TOKEN": ""},
+        ):
+            available = check_available_providers()
+        assert available["hf_inference"] is False
+        assert available["hf_endpoints"] is False
+        assert available["colab"] is True  # always available
+        assert available["modal"] is False
+        assert available["beam"] is False
+
+
+class TestRecommendGpuFilterAvailable:
+    def test_filter_removes_unavailable(self):
+        env = {"HF_TOKEN": "hf_xxx"}
+        with (
+            mock.patch.dict(os.environ, env, clear=False),
+            mock.patch.dict(
+                os.environ,
+                {"MODAL_TOKEN_ID": "", "MODAL_TOKEN_SECRET": "", "BEAM_TOKEN": ""},
+            ),
+        ):
+            recs = recommend_gpu(10.0, filter_available=True)
+        providers = {r["provider"] for r in recs}
+        # Only hf_endpoints and colab should remain (modal/beam filtered out)
+        assert "modal" not in providers
+        assert "beam" not in providers
+        assert "hf_endpoints" in providers
+        assert "colab" in providers
+
+    def test_no_filter_includes_all(self):
+        recs = recommend_gpu(10.0, filter_available=False)
+        providers = {r["provider"] for r in recs}
+        assert "hf_endpoints" in providers
+        assert "colab" in providers
+        assert "modal" in providers
+        assert "beam" in providers
+
+
+class TestEstimateWithEnvCheck:
+    def test_filter_available_adds_provider_status(self):
+        env = {"HF_TOKEN": "hf_xxx"}
+        with (
+            mock.patch.dict(os.environ, env, clear=False),
+            mock.patch.dict(
+                os.environ,
+                {"MODAL_TOKEN_ID": "", "MODAL_TOKEN_SECRET": "", "BEAM_TOKEN": ""},
+            ),
+        ):
+            result = estimate(7_000_000_000, "fp16", "llm", filter_available=True)
+        assert "provider_availability" in result
+        assert result["provider_availability"]["hf_inference"] is True
+        assert result["provider_availability"]["modal"] is False
+
+    def test_no_filter_no_provider_status(self):
+        result = estimate(7_000_000_000, "fp16", "llm", filter_available=False)
+        assert "provider_availability" not in result
 
 
 class TestEstimateCost:

@@ -39,7 +39,7 @@ Consult the **model-researcher** skill knowledge:
 
 1. Run `python .claude/skills/model-researcher/scripts/hf_model_info.py MODEL_ID --json`
 2. Run `python .claude/skills/model-researcher/scripts/hf_inference_check.py MODEL_ID --json`
-3. Run `python .claude/skills/model-researcher/scripts/gpu_estimator.py --params PARAMS --model-type TYPE --json`
+3. Run `python .claude/skills/model-researcher/scripts/gpu_estimator.py --params PARAMS --model-type TYPE --check-env --json`
 4. Read the appropriate eval guide from `.claude/skills/model-researcher/references/`
 
 Produce a research summary **including estimated cost** before proceeding.

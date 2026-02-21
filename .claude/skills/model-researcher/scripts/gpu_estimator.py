@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 
@@ -110,6 +111,29 @@ BENCH_DURATION_MINUTES: dict[str, float] = {
 }
 
 
+def check_available_providers() -> dict[str, bool]:
+    """Check which providers have required env vars set.
+
+    Returns dict of provider -> available (True/False).
+    Loads .env from repo root if python-dotenv is available.
+    """
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+    except ImportError:
+        pass
+
+    available = {}
+    for provider, env_vars in PROVIDER_ENV_VARS.items():
+        if not env_vars:
+            # No token needed (e.g., colab via Chrome MCP)
+            available[provider] = True
+        else:
+            available[provider] = all(os.environ.get(v) for v in env_vars)
+    return available
+
+
 def estimate_vram(param_count: int, quant: str = "fp16") -> float:
     """Estimate VRAM in GB. Adds ~20% overhead for activations/framework."""
     bytes_per_param = BYTES_PER_PARAM.get(quant, 2.0)
@@ -118,22 +142,50 @@ def estimate_vram(param_count: int, quant: str = "fp16") -> float:
     return model_size_gb * 1.2
 
 
-def recommend_gpu(vram_required_gb: float) -> list[dict]:
-    """Return GPUs sorted by hourly cost (cheapest first), then provider rank."""
+def recommend_gpu(
+    vram_required_gb: float,
+    filter_available: bool = False,
+) -> list[dict]:
+    """Return GPUs sorted by hourly cost (cheapest first), then provider rank.
+
+    Args:
+        vram_required_gb: Minimum VRAM in GB.
+        filter_available: If True, only include providers whose env vars are set.
+    """
+    if filter_available:
+        available = check_available_providers()
+    else:
+        available = None
+
     suitable = []
     for gpu in GPUS:
         if gpu["vram_gb"] >= vram_required_gb:
             for provider in gpu["providers"]:
+                # Skip providers without required tokens
+                if available is not None and not available.get(provider, False):
+                    continue
+
                 hourly = GPU_PRICING.get(provider, {}).get(gpu["name"])
-                suitable.append(
-                    {
-                        "gpu": gpu["name"],
-                        "vram_gb": gpu["vram_gb"],
-                        "provider": provider,
-                        "cost_rank": PROVIDER_COST_RANK.get(provider, 99),
-                        "hourly_rate_usd": hourly,
-                    }
-                )
+                free_tier = SUBSCRIPTION_COSTS.get(provider, {})
+
+                rec: dict = {
+                    "gpu": gpu["name"],
+                    "vram_gb": gpu["vram_gb"],
+                    "provider": provider,
+                    "cost_rank": PROVIDER_COST_RANK.get(provider, 99),
+                    "hourly_rate_usd": hourly,
+                    "available": available.get(provider, True) if available else None,
+                }
+
+                # Add free tier / subscription info
+                if free_tier:
+                    monthly = free_tier.get("monthly_usd", 0)
+                    note = free_tier.get("note", "")
+                    if monthly > 0 or note:
+                        rec["subscription_note"] = note
+
+                suitable.append(rec)
+
     # Sort: cheapest hourly rate first, then provider rank as tiebreaker
     # None rates (unknown pricing) go last
     suitable.sort(
@@ -193,13 +245,32 @@ def estimate_cost(
     }
 
 
-def estimate(param_count: int, quant: str = "fp16", model_type: str = "unknown") -> dict:
-    """Full estimation: VRAM + GPU + provider + cost recommendations."""
+def estimate(
+    param_count: int,
+    quant: str = "fp16",
+    model_type: str = "unknown",
+    filter_available: bool = False,
+) -> dict:
+    """Full estimation: VRAM + GPU + provider + cost recommendations.
+
+    Args:
+        param_count: Number of model parameters.
+        quant: Quantization level.
+        model_type: Model type for duration estimate.
+        filter_available: If True, only show providers with env vars set.
+    """
     vram_gb = estimate_vram(param_count, quant)
-    recommendations = recommend_gpu(vram_gb)
+    recommendations = recommend_gpu(vram_gb, filter_available=filter_available)
+
+    # Check provider availability for the summary
+    provider_status = check_available_providers() if filter_available else None
 
     # Check if small enough for HF Inference API (rough heuristic: <15B fp16)
     hf_viable = param_count < 15_000_000_000 and quant in ("fp16", "bf16")
+
+    # If filtering, also check if HF_TOKEN is available for hf_inference
+    if filter_available and provider_status:
+        hf_viable = hf_viable and provider_status.get("hf_inference", False)
 
     # Add cost estimates to each recommendation
     for rec in recommendations:
@@ -218,6 +289,9 @@ def estimate(param_count: int, quant: str = "fp16", model_type: str = "unknown")
         "recommendations": recommendations[:5],  # Top 5
     }
 
+    if provider_status is not None:
+        result["provider_availability"] = provider_status
+
     if hf_viable:
         result["recommendations"].insert(
             0,
@@ -225,9 +299,10 @@ def estimate(param_count: int, quant: str = "fp16", model_type: str = "unknown")
                 "gpu": "cloud",
                 "vram_gb": 0,
                 "provider": "hf_inference",
-                "priority": 0,
+                "cost_rank": 0,
                 "estimated_cost_usd": 0.0,
                 "hourly_rate_usd": 0.0,
+                "subscription_note": "HF Pro — included inference credits",
             },
         )
 
@@ -251,6 +326,11 @@ def main() -> None:
         help="Model type for duration estimate (llm, vlm, image-gen, tts, etc.)",
     )
     parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument(
+        "--check-env",
+        action="store_true",
+        help="Check .env for provider tokens, filter unavailable providers",
+    )
     args = parser.parse_args()
 
     try:
@@ -259,7 +339,7 @@ def main() -> None:
         print(f"Error: Cannot parse param count: {args.params}", file=sys.stderr)
         sys.exit(1)
 
-    result = estimate(param_count, args.quant, args.model_type)
+    result = estimate(param_count, args.quant, args.model_type, filter_available=args.check_env)
 
     if args.json:
         print(json.dumps(result, indent=2))
@@ -269,9 +349,22 @@ def main() -> None:
         print(f"Model type: {args.model_type}")
         print(f"Estimated VRAM: {result['estimated_vram_gb']} GB")
         print()
+
+        # Show provider availability if --check-env
+        if "provider_availability" in result:
+            print("Provider availability:")
+            for provider, available in result["provider_availability"].items():
+                status = "✓" if available else "✗"
+                env_vars = PROVIDER_ENV_VARS.get(provider, [])
+                env_str = ", ".join(env_vars) if env_vars else "(no token needed)"
+                sub = SUBSCRIPTION_COSTS.get(provider, {})
+                note = f" — {sub['note']}" if sub.get("note") else ""
+                print(f"  {status} {provider} [{env_str}]{note}")
+            print()
+
         if result["hf_inference_viable"]:
-            print("  HF Inference API is viable (recommended, free with HF Pro)")
-        print("Recommended GPUs (with estimated cost):")
+            print("  ★ HF Inference API is viable (recommended, free with HF Pro)")
+        print("Recommended GPUs (cheapest first):")
         for rec in result["recommendations"]:
             if rec["provider"] == "hf_inference":
                 continue
@@ -279,9 +372,10 @@ def main() -> None:
             cost_str = f"~${cost:.2f}" if cost is not None else "N/A"
             rate = rec.get("hourly_rate_usd")
             rate_str = f"${rate:.2f}/hr" if rate is not None else "?"
+            sub_note = f"  ({rec['subscription_note']})" if rec.get("subscription_note") else ""
             print(
                 f"  {rec['gpu']} ({rec['vram_gb']}GB) on {rec['provider']}"
-                f"  — {rate_str}, est. {cost_str}"
+                f"  — {rate_str}, est. {cost_str}{sub_note}"
             )
 
 
