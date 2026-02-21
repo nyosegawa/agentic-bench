@@ -1,8 +1,8 @@
 # Secrets
 .env
 
-# Skill references with licensing concerns
-.claude/skills/references/skill-bestpractice.md
+# References with licensing concerns
+references/skill-bestpractice.md
 
 # Workspace logs (scripts are committed, logs are not)
 results/*/workspace/*.log

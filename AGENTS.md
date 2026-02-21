@@ -10,7 +10,7 @@
 2. External integrations (GPU cloud APIs, Chrome MCP) are tested via manual verification.
 3. Keep provider adapters behind clean interfaces so core logic remains testable.
 4. Never merge code that breaks existing tests.
-5. Build skills following `.claude/skills/references/skill-bestpractice.md` (gitignored, local only).
+5. Build skills following `references/skill-bestpractice.md` (gitignored, local only).
 ## Required Flow Per Change
 1. Implement the change.
 2. Add or update tests for any core logic touched.
