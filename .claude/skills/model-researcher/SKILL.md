@@ -103,10 +103,14 @@ gpu_estimator.py outputs cost-sorted recommendations. Use that to pick the cheap
 Structure your findings as:
 ```
 ## Research Summary: {model_name}
+- **URL**: https://huggingface.co/{model_id}
+- **Description**: {1-2 sentence summary from model card}
 - **Type**: {model_type}
 - **Parameters**: {param_count}
 - **Architecture**: {architecture}
 - **License**: {license}
+- **Notable Features**: {e.g., "6 language tags for accent switching", "supports img2img"}
+- **Install**: {pip install command from model card, if available}
 - **VRAM Required**: {vram_estimate}
 - **Recommended GPU**: {gpu}
 - **Recommended Provider**: {provider}
@@ -114,6 +118,9 @@ Structure your findings as:
 - **Evaluation Strategy**: {brief description}
 - **Key Metrics**: {metrics to measure}
 ```
+
+**This summary is used in the final report.** Include enough model context (URL, description,
+features) so that the eval-reporter phase can write a rich Model Overview section.
 
 Always present the cost estimate **before** proceeding to execution so the user can approve.
 

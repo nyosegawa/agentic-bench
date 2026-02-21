@@ -116,12 +116,9 @@ python .claude/skills/model-researcher/scripts/gpu_estimator.py --params 7B --qu
 └── eval-reporter/          # Phase 3: レポート生成
     ├── SKILL.md
     ├── scripts/
-    │   ├── metrics_writer.py
-    │   └── report_generator.py
-    ├── references/
-    │   └── report-format.md
-    └── assets/
-        └── report_template.html
+    │   └── metrics_writer.py
+    └── references/
+        └── report-format.md     # スキーマ + デザインガイド
 ```
 
 ### 設計思想

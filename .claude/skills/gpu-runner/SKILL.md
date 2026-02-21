@@ -63,6 +63,23 @@ image.save("output.png")
 
 ## Execution Workflow
 
+### Step 0: Dependency Research (BEFORE writing code)
+
+**The most expensive mistake is building a cloud image 10 times.** Resolve ALL dependencies
+before writing the script, not through trial-and-error.
+
+1. **Read the model card install instructions** — if it says `pip install X`, use that exactly
+2. **Check for heavy framework dependencies** (nemo-toolkit, fairseq, detectron2, mmdet, etc.):
+   - Search PyPI or GitHub for the package's `requirements.txt` / `setup.py`
+   - List ALL transitive dependencies upfront
+   - Use `--no-deps` to install the framework, then install its dependencies explicitly
+3. **Use `uv` instead of `pip`** for faster, more reliable dependency resolution
+4. **Pin versions only when the model card specifies them** — otherwise let the resolver decide
+
+**Anti-pattern (never do this):**
+Adding one missing package at a time → rebuild → discover next missing package → rebuild.
+This wastes 5-10 minutes per cycle. Instead, get the full dependency list right once.
+
 ### Step 1: Write Inference Code
 
 Read `references/inference-patterns.md` for code snippets per model type (LLM, VLM,

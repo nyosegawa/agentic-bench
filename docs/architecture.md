@@ -154,12 +154,9 @@ agentic-bench/
 │       └── eval-reporter/               # レポートフェーズ
 │           ├── SKILL.md                 # レポート生成の戦略
 │           ├── scripts/
-│           │   ├── report_generator.py  # HTML レポート生成
 │           │   └── metrics_writer.py    # metrics.json 書き出し
-│           ├── references/
-│           │   └── report-format.md     # レポート仕様
-│           └── assets/
-│               └── report_template.html
+│           └── references/
+│               └── report-format.md     # metrics.json スキーマ + デザインガイド
 │
 ├── docs/                                # 設計ドキュメント
 │   └── architecture.md
@@ -310,9 +307,9 @@ results/2026-02-21_gemma3-27b/
 ### eval-reporter (レポートフェーズ)
 
 - **役割**: 結果から HTML レポートと metrics.json を生成する
-- **scripts/**: report_generator.py, metrics_writer.py
-- **assets/**: report_template.html
-- **自由度: 中** — フォーマットは決まっているが、内容は Agent が書く
+- **scripts/**: metrics_writer.py
+- **references/**: report-format.md（metrics.json スキーマ + デザインガイドライン）
+- **自由度: 高** — HTML はエージェントが直接生成。テンプレートなし。デザインガイドラインのみ提供
 
 ### スキルチェーンのフロー
 

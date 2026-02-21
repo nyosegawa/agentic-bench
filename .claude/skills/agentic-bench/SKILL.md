@@ -43,6 +43,7 @@ Consult the **model-researcher** skill knowledge:
 4. Read the appropriate eval guide from `.claude/skills/model-researcher/references/`
 
 Produce a research summary **including estimated cost** before proceeding.
+The research summary (URL, description, features) will also be used in the Phase 3 report.
 
 ### Cost Gate
 
@@ -86,9 +87,8 @@ If execution fails, debug and retry. If the provider fails twice, try the next p
 Consult the **eval-reporter** skill knowledge:
 
 1. Write metrics.json using `.claude/skills/eval-reporter/scripts/metrics_writer.py`
-2. Generate HTML report using `.claude/skills/eval-reporter/scripts/report_generator.py`
-   (or write directly using the template)
-3. Consult `.claude/skills/eval-reporter/references/report-format.md` for schema
+2. **Write the HTML report yourself** — consult `.claude/skills/eval-reporter/references/report-format.md` for design guidelines and required sections
+3. Include model profile from Phase 1 (URL, description, features) in the report's Model Overview section
 
 Result directory structure:
 ```

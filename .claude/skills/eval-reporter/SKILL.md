@@ -18,18 +18,19 @@ You are generating evaluation reports from model benchmark results.
 
 Given evaluation outputs and metrics:
 1. Write structured `metrics.json` with all measurements
-2. Generate a beautiful HTML report with embedded outputs
+2. Write a beautiful HTML report **directly** (no template — you design the page)
 3. Save everything to `results/YYYY-MM-DD_modelname/`
 
 ## Workflow
 
 ### Step 1: Collect Data
 
-Gather from the gpu-runner phase:
-- Model metadata (name, type, params, provider, GPU)
-- Stage results (smoke test pass/fail, quality outputs, performance metrics)
-- Generated artifacts (images, audio, text files)
-- Timing and cost information
+Gather from the previous phases:
+- **Model profile** from research phase: name, URL, description, architecture, params, license, notable features
+- **Stage results**: smoke test pass/fail, quality outputs, performance metrics
+- **Generated artifacts**: images, audio, text files in `artifacts/`
+- **Timing and cost** information
+- **Device info**: GPU, VRAM, framework versions
 
 ### Step 2: Write metrics.json
 
@@ -46,17 +47,33 @@ python .claude/skills/eval-reporter/scripts/metrics_writer.py \
 
 Or construct the JSON directly following `references/report-format.md`.
 
-### Step 3: Generate HTML Report
+### Step 3: Write HTML Report
 
-Run the report generator:
-```bash
-python .claude/skills/eval-reporter/scripts/report_generator.py \
-  --metrics results/YYYY-MM-DD_modelname/metrics.json \
-  --artifacts-dir results/YYYY-MM-DD_modelname/artifacts/ \
-  --output results/YYYY-MM-DD_modelname/report.html
-```
+**Write the HTML yourself.** Do not use a template. You are an ML engineer writing a report
+for a technical audience. Design the page to be informative, honest, and beautiful.
 
-Or write the HTML directly using the template in `assets/report_template.html`.
+Consult `references/report-format.md` for design guidelines (CSS palette, component examples).
+
+**Required sections:**
+
+1. **Header** — Model name (linked to HuggingFace page), type badge, date, provider/GPU
+2. **Model Overview** — Architecture, parameter count, license, key features, 1-2 sentence description from model card
+3. **Execution Environment** — GPU, VRAM, framework versions, provider
+4. **Smoke Test** — Pass/fail, load time, any issues
+5. **Quality Results** — Test inputs paired with outputs:
+   - TTS: show input text above each `<audio>` player
+   - Image gen: show prompt above each `<img>`
+   - LLM: show prompt and response together
+   - Always show what went IN and what came OUT
+6. **Performance** — Key metrics table, comparison to published benchmarks if known
+7. **Conclusion** — Your honest assessment: strengths, weaknesses, comparison to claimed performance, practical recommendations
+8. **Reproduction** — Link to `workspace/run.py`, note the provider and cost
+
+**Design principles:**
+- Dark theme preferred (see references/report-format.md for CSS palette)
+- Responsive layout, readable at any width
+- Use semantic HTML — `<table>`, `<audio>`, `<img>`, not div soup
+- Reference artifacts by relative path (not base64)
 
 ### Step 4: Organize Result Directory
 
@@ -72,20 +89,11 @@ results/YYYY-MM-DD_modelname/
     └── run.py           # The inference script used
 ```
 
-### Step 5: Write Evaluation Commentary
-
-In the HTML report, include your assessment:
-- **Smoke test**: Did the model load and produce output?
-- **Quality**: Your observations on output quality (be specific and honest)
-- **Performance**: How do the numbers compare to similar models?
-- **Cost**: Was this cost-effective? What would production use look like?
-- **Verdict**: Overall recommendation and notable strengths/weaknesses
-
 ## Important
 
-- Consult `references/report-format.md` for the exact metrics.json schema
+- Consult `references/report-format.md` for the metrics.json schema and CSS design reference
 - Images should be referenced by relative path in HTML (not base64, to keep file size small)
 - Audio files: use `<audio controls>` tags in HTML
-- Charts: use inline Chart.js for performance visualizations
 - Always include the run.py script for reproducibility
 - Be honest in assessments — document failures and limitations clearly
+- The report should be self-contained and understandable without reading metrics.json
