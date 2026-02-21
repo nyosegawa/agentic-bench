@@ -1,0 +1,17 @@
+# Secrets
+.env
+
+# Skill references with licensing concerns
+.claude/skills/references/skill-bestpractice.md
+
+# Workspace logs (scripts are committed, logs are not)
+results/*/workspace/*.log
+results/*/workspace/*.tmp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store
