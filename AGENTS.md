@@ -6,17 +6,15 @@
 4. Refactor periodically to reduce complexity and technical debt.
 5. Always use the latest versions for libraries/dependencies, and research their usage thoroughly before introducing them.
 ## Development Policy
-1. This repository is TDD-first by default.
-2. Always execute Red -> Green -> Refactor.
-3. Start with a failing test before production code.
-4. If tests are hard to write, create seams (split function, trait, adapter) and test through them.
-5. GUI features start with domain/backend logic (TDD), then reflect in GUI. Never GUI-first.
+1. Write tests for core logic (config parsing, result aggregation, adapter interfaces).
+2. External integrations (GPU cloud APIs, Chrome MCP) are tested via manual verification.
+3. Keep provider adapters behind clean interfaces so core logic remains testable.
+4. Never merge code that breaks existing tests.
 ## Required Flow Per Change
-1. Define expected behavior as a test.
-2. Run tests and confirm failure (Red).
-3. Implement the minimal fix (Green).
-4. Refactor safely with tests green.
-5. Re-run full relevant scope before finishing.
+1. Implement the change.
+2. Add or update tests for any core logic touched.
+3. Run the verification loop below.
+4. Confirm all checks pass before committing.
 ## Python Verification Loop
 1. `pytest`
 2. `ruff check .`
