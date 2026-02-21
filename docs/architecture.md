@@ -95,26 +95,28 @@ agentic-bench/
 │   └── skills/                          # Agent Skills（本体）
 │       ├── agentic-bench/               # メインスキル: 探索的モデル検証
 │       │   ├── SKILL.md                 # 指示書
-│       │   └── references/
-│       │       ├── providers.md         # プロバイダ別ガイド
-│       │       └── report-format.md     # レポート仕様
+│       │   ├── scripts/                 # ヘルパースクリプト（任意で実行）
+│       │   │   ├── hf_model_info.py     # HF model card 情報取得
+│       │   │   ├── gpu_estimator.py     # VRAM 推定
+│       │   │   ├── report_generator.py  # HTML レポート生成
+│       │   │   └── metrics_writer.py    # metrics.json 書き出し
+│       │   ├── references/              # 必要時ロード
+│       │   │   ├── providers.md         # プロバイダ別ガイド
+│       │   │   └── report-format.md     # レポート仕様
+│       │   └── assets/                  # テンプレート等
+│       │       └── report_template.html # HTML レポートテンプレート
 │       ├── beam-deploy/                 # beam.cloud 専用スキル
-│       │   └── SKILL.md
+│       │   ├── SKILL.md
+│       │   ├── scripts/
+│       │   └── references/
+│       │       └── beam-sdk.md
 │       └── colab-runner/                # Colab Chrome MCP 専用スキル
-│           └── SKILL.md
-├── docs/
-│   └── architecture.md                  # この文書
-├── research/                            # 調査・設計メモ
-├── src/
-│   ├── utils/                           # Agent が任意で使えるヘルパー
-│   │   ├── hf_model_info.py             # HF model card 情報取得
-│   │   ├── gpu_estimator.py             # VRAM 推定
-│   │   ├── report_generator.py          # HTML レポートテンプレート
-│   │   └── metrics_writer.py            # metrics.json 書き出し
-│   └── providers/                       # プロバイダ定型処理
-│       ├── colab_helpers.py
-│       ├── modal_helpers.py
-│       └── beam_helpers.py
+│           ├── SKILL.md
+│           └── references/
+│               └── chrome-mcp-tips.md
+├── docs/                                # 設計ドキュメント
+│   └── architecture.md
+├── research/                            # 調査メモ
 ├── results/                             # 実行結果（自動 commit）
 │   └── YYYY-MM-DD_model/
 │       ├── report.html                  # 綺麗なレポート（GitHub Pages 公開）
@@ -123,13 +125,12 @@ agentic-bench/
 │       └── workspace/                   # 再現用（スクリプトのみ commit）
 │           └── run.py                   # Agent が書いた実行コード
 ├── .env                                 # APIキー等（gitignore）
-├── tests/                               # ユーティリティのテスト
+├── tests/                               # scripts/ のテスト
 └── .gitignore
 ```
 
-**設計思想**: `.claude/skills/` の SKILL.md（指示書）が本体。
-`src/` は Agent が使っても使わなくても良い補助ツール。
-Agent は model card を読み、コードをその場で書き、出力を見て判断する。
+**設計思想**: `.claude/skills/` が全て。SKILL.md（指示書）+ scripts/（ヘルパー）+ references/（知識）。
+Agent は scripts/ を使っても使わなくても良い。model card を読み、コードをその場で書き、出力を見て判断する。
 
 ---
 
@@ -224,7 +225,8 @@ Agent 自身が ML エンジニアとして探索的に検証する。
 ```
 SKILL.md (常時ロード)          → ゴール・戦略・判断基準
 references/ (必要時ロード)     → プロバイダ詳細・フォーマット仕様
-src/utils/ (任意で実行)        → ヘルパースクリプト
+scripts/ (任意で実行)          → ヘルパースクリプト（コンテキスト不要で実行可能）
+assets/ (出力に使用)           → HTML テンプレート等
 ```
 
 ---
