@@ -76,6 +76,9 @@ BENCH_DURATION_MINUTES: dict[str, float] = {
     "stt": 10.0,
     "audio": 10.0,
     "timeseries": 10.0,
+    "video-gen": 30.0,
+    "object-detection": 10.0,
+    "3d-gen": 20.0,
     "unknown": 15.0,
 }
 

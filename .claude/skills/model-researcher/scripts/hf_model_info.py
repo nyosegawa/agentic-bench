@@ -69,33 +69,59 @@ def classify_model_type(info: dict) -> str:
     tags = info.get("tags", [])
 
     mapping = {
+        # LLM
         "text-generation": "llm",
         "text2text-generation": "llm",
         "conversational": "llm",
+        # Image generation
         "text-to-image": "image-gen",
         "image-to-image": "image-gen",
+        # Audio
         "text-to-speech": "tts",
-        "text-to-audio": "tts",
+        "text-to-audio": "audio",
         "automatic-speech-recognition": "stt",
         "audio-to-audio": "audio",
+        "audio-classification": "audio",
+        # Vision-Language
         "image-text-to-text": "vlm",
         "visual-question-answering": "vlm",
+        "document-question-answering": "vlm",
+        # Embedding
         "feature-extraction": "embedding",
         "sentence-similarity": "embedding",
+        # Time series
         "time-series-forecasting": "timeseries",
+        # Video
+        "text-to-video": "video-gen",
+        "image-to-video": "video-gen",
+        # Object detection / segmentation
+        "object-detection": "object-detection",
+        "image-segmentation": "object-detection",
+        "zero-shot-object-detection": "object-detection",
+        # 3D
+        "image-to-3d": "3d-gen",
+        "text-to-3d": "3d-gen",
     }
 
     if pipeline in mapping:
         return mapping[pipeline]
 
-    # Fallback: check tags
+    # Fallback: check tags (more specific types first to avoid false matches)
     tag_set = {t.lower() for t in tags}
     if tag_set & {"llm", "causal-lm", "text-generation"}:
         return "llm"
+    if tag_set & {"code", "code-generation", "coder"}:
+        return "code-gen"
+    if tag_set & {"video-generation", "text-to-video"}:
+        return "video-gen"
     if tag_set & {"diffusion", "stable-diffusion", "text-to-image"}:
         return "image-gen"
     if tag_set & {"tts", "text-to-speech"}:
         return "tts"
+    if tag_set & {"object-detection", "yolo", "detr"}:
+        return "object-detection"
+    if tag_set & {"3d", "mesh-generation", "point-cloud"}:
+        return "3d-gen"
 
     return "unknown"
 

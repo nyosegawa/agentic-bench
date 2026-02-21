@@ -70,6 +70,11 @@ Classify the model and load the appropriate evaluation guide:
 | Embedding | `references/eval-embedding.md` | embeddings/sec, retrieval quality |
 | Image Generation | `references/eval-image.md` | sec/image, visual quality |
 | TTS (text-to-speech) | `references/eval-tts.md` | RTF, audio quality |
+| STT (speech recognition) | `references/eval-stt.md` | RTF, WER/CER |
+| Audio / Music Gen | `references/eval-audio.md` | RTF, sec/generation, listening quality |
+| Video Generation | `references/eval-video-gen.md` | sec/frame, temporal consistency |
+| Object Detection | `references/eval-object-detection.md` | mAP, FPS, detection quality |
+| 3D Generation | `references/eval-3d-gen.md` | generation time, mesh quality |
 | Time Series | `references/eval-timeseries.md` | MAE/RMSE, prediction accuracy |
 
 Read the relevant reference file for detailed evaluation guidance.

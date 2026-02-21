@@ -61,12 +61,19 @@ image.save("output.png")
 
 ### Step 1: Write Inference Code
 
-Based on model type and provider, write a self-contained script:
+Read `references/inference-patterns.md` for code snippets per model type (LLM, VLM,
+image-gen, TTS, STT, embedding, timeseries, video-gen, object-detection, 3D, etc.).
+
+Then write a self-contained script:
 - Import all dependencies
 - Load model (with appropriate dtype/device settings)
 - Run inference with test inputs
 - Save outputs to files
 - Print structured metrics (timing, token counts, etc.)
+
+**Always check the model card first** — it overrides the generic patterns in
+inference-patterns.md. Each model may have a unique API, custom pipeline class,
+or special dependencies.
 
 Save the script to `results/YYYY-MM-DD_modelname/workspace/run.py`.
 

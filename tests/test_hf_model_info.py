@@ -62,3 +62,63 @@ class TestClassifyModelType:
     def test_empty_everything(self):
         info = {"pipeline_tag": "", "tags": []}
         assert classify_model_type(info) == "unknown"
+
+    # New model types: video-gen, object-detection, 3d-gen, audio, code-gen fallback
+
+    def test_text_to_video(self):
+        info = {"pipeline_tag": "text-to-video", "tags": []}
+        assert classify_model_type(info) == "video-gen"
+
+    def test_image_to_video(self):
+        info = {"pipeline_tag": "image-to-video", "tags": []}
+        assert classify_model_type(info) == "video-gen"
+
+    def test_object_detection(self):
+        info = {"pipeline_tag": "object-detection", "tags": []}
+        assert classify_model_type(info) == "object-detection"
+
+    def test_image_segmentation(self):
+        info = {"pipeline_tag": "image-segmentation", "tags": []}
+        assert classify_model_type(info) == "object-detection"
+
+    def test_zero_shot_object_detection(self):
+        info = {"pipeline_tag": "zero-shot-object-detection", "tags": []}
+        assert classify_model_type(info) == "object-detection"
+
+    def test_image_to_3d(self):
+        info = {"pipeline_tag": "image-to-3d", "tags": []}
+        assert classify_model_type(info) == "3d-gen"
+
+    def test_text_to_3d(self):
+        info = {"pipeline_tag": "text-to-3d", "tags": []}
+        assert classify_model_type(info) == "3d-gen"
+
+    def test_text_to_audio(self):
+        info = {"pipeline_tag": "text-to-audio", "tags": []}
+        assert classify_model_type(info) == "audio"
+
+    def test_audio_to_audio(self):
+        info = {"pipeline_tag": "audio-to-audio", "tags": []}
+        assert classify_model_type(info) == "audio"
+
+    def test_document_qa_is_vlm(self):
+        info = {"pipeline_tag": "document-question-answering", "tags": []}
+        assert classify_model_type(info) == "vlm"
+
+    # Tag fallback tests for new types
+
+    def test_fallback_to_tags_code_gen(self):
+        info = {"pipeline_tag": "", "tags": ["code", "pytorch"]}
+        assert classify_model_type(info) == "code-gen"
+
+    def test_fallback_to_tags_video_gen(self):
+        info = {"pipeline_tag": "", "tags": ["video-generation", "diffusion"]}
+        assert classify_model_type(info) == "video-gen"
+
+    def test_fallback_to_tags_object_detection(self):
+        info = {"pipeline_tag": "", "tags": ["yolo", "detection"]}
+        assert classify_model_type(info) == "object-detection"
+
+    def test_fallback_to_tags_3d_gen(self):
+        info = {"pipeline_tag": "", "tags": ["3d", "mesh-generation"]}
+        assert classify_model_type(info) == "3d-gen"

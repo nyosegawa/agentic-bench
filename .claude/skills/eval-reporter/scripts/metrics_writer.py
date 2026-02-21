@@ -28,6 +28,9 @@ VALID_MODEL_TYPES = {
     "embedding",
     "timeseries",
     "code-gen",
+    "video-gen",
+    "object-detection",
+    "3d-gen",
     "unknown",
 }
 
