@@ -1,0 +1,31 @@
+{
+  "run_id": "2026-02-21T05:25:29.594086+00:00",
+  "model": "nineninesix/kani-tts-2-en",
+  "model_type": "tts",
+  "provider": "modal",
+  "gpu": "L4",
+  "stages": {
+    "smoke": {
+      "status": "pass",
+      "load_time_seconds": 42.666,
+      "notes": "Model loaded successfully on L4 GPU. 22050 Hz sample rate. 6 language tags available."
+    },
+    "quality": {
+      "outputs": [
+        "artifacts/smoke_test.wav",
+        "artifacts/quality_simple.wav",
+        "artifacts/quality_numbers.wav",
+        "artifacts/quality_emotion.wav",
+        "artifacts/quality_long.wav"
+      ],
+      "notes": "All 4 test sentences generated successfully. Default speaker used (no language tag specified in quality/perf calls, model falls back to random). RTF consistently ~0.8 across all sentence lengths. Numbers and dates handled correctly. Long text (300 chars) generated ~30s of audio without degradation."
+    },
+    "performance": {
+      "rtf": 0.807,
+      "num_runs": 5,
+      "notes": "Median RTF=0.807 on L4 GPU (slower than claimed 0.2 on RTX 5080). RTF range: 0.79-0.87. Not real-time on L4 but close."
+    }
+  },
+  "cost_usd": 0.13,
+  "duration_seconds": 180
+}

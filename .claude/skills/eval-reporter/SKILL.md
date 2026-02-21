@@ -89,6 +89,13 @@ results/YYYY-MM-DD_modelname/
     └── run.py           # The inference script used
 ```
 
+### Step 5: Update Index Page
+
+Regenerate the top-level index.html (report listing for GitHub Pages):
+```bash
+python .claude/skills/eval-reporter/scripts/generate_index.py
+```
+
 ## Important
 
 - Consult `references/report-format.md` for the metrics.json schema and CSS design reference

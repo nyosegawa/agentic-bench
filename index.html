@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>agentic-bench — Model Benchmark Reports</title>
+<style>
+  :root { --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --border: #30363d;
+    --card: #161b22; --blue: #58a6ff; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6; padding: 2rem;
+    max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.3rem; }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; background: var(--card);
+    border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden; }
+  th { text-align: left; padding: 0.6rem 1rem; color: var(--muted); font-weight: 500;
+    font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border);
+    background: var(--bg); }
+  td { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(88,166,255,0.04); }
+  footer { margin-top: 2rem; color: var(--muted); font-size: 0.8rem; }
+</style>
+</head>
+<body>
+
+<h1>agentic-bench</h1>
+<p class="subtitle">
+  Autonomous ML model validation reports —
+  <a href="https://github.com/nyosegawa/agentic-bench">GitHub</a>
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Model</th>
+      <th>Type</th>
+      <th>Status</th>
+      <th>Key Metric</th>
+      <th>Provider / GPU</th>
+      <th>Cost</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr><td>2026-02-21</td><td><a href="results/2026-02-21_kani-tts-2-en/report.html" style="color:#58a6ff;">nineninesix/kani-tts-2-en</a></td><td><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:1rem;font-size:0.75rem;font-weight:600;background:#3fb95022;color:#3fb950;">tts</span></td><td><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:1rem;font-size:0.75rem;font-weight:600;background:rgba(63,185,80,0.2);color:#3fb950;">PASS</span></td><td>RTF 0.81</td><td>modal / L4</td><td>$0.13</td></tr>
+      <tr><td>2026-02-21</td><td><a href="results/2026-02-21_glm-ocr/report.html" style="color:#58a6ff;">zai-org/GLM-OCR</a></td><td><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:1rem;font-size:0.75rem;font-weight:600;background:#d2a8ff22;color:#d2a8ff;">vlm</span></td><td><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:1rem;font-size:0.75rem;font-weight:600;background:rgba(63,185,80,0.2);color:#3fb950;">PASS</span></td><td>4.1 tok/s</td><td>modal / T4</td><td>$0.15</td></tr>
+  </tbody>
+</table>
+
+<footer>
+  <p>Generated 2026-02-21 15:27 — 2 benchmark(s)</p>
+</footer>
+
+</body>
+</html>

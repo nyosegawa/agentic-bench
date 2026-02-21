@@ -1,0 +1,78 @@
+{
+  "model_id": "nineninesix/kani-tts-2-en",
+  "smoke_test": {
+    "status": "pass",
+    "load_time_seconds": 42.666,
+    "generation_time_seconds": 5.506,
+    "audio_duration_seconds": 5.04,
+    "sample_rate": 22050,
+    "audio_size_bytes": 222308,
+    "text_returned": "Hello, this is a test of the speech synthesis system."
+  },
+  "quality_check": {
+    "simple": {
+      "status": "pass",
+      "input_text": "The quick brown fox jumps over the lazy dog.",
+      "text_returned": "The quick brown fox jumps over the lazy dog.",
+      "generation_time_seconds": 3.344,
+      "audio_duration_seconds": 4.08,
+      "rtf": 0.8197,
+      "audio_size_bytes": 179972
+    },
+    "numbers": {
+      "status": "pass",
+      "input_text": "On January 15th, 2026, the temperature was minus 3 degrees Celsius.",
+      "text_returned": "On January 15th, 2026, the temperature was minus 3 degrees Celsius.",
+      "generation_time_seconds": 3.965,
+      "audio_duration_seconds": 4.88,
+      "rtf": 0.8126,
+      "audio_size_bytes": 215252
+    },
+    "emotion": {
+      "status": "pass",
+      "input_text": "Oh wow, that is absolutely incredible! I cannot believe it!",
+      "text_returned": "Oh wow, that is absolutely incredible! I cannot believe it!",
+      "generation_time_seconds": 16.129,
+      "audio_duration_seconds": 20.0,
+      "rtf": 0.8064,
+      "audio_size_bytes": 882044
+    },
+    "long": {
+      "status": "pass",
+      "input_text": "Artificial intelligence is transforming the way we interact with technology. From voice assistants to autonomous vehicles, the applications are vast and continue to grow every day. Researchers around the world are working to make these systems more capable, more efficient, and more accessible to everyone.",
+      "text_returned": "Artificial intelligence is transforming the way we interact with technology. From voice assistants to autonomous vehicles, the applications are vast and continue to grow every day. Researchers around the world are working to make these systems more capable, more efficient, and more accessible to everyone.",
+      "generation_time_seconds": 24.65,
+      "audio_duration_seconds": 30.16,
+      "rtf": 0.8173,
+      "audio_size_bytes": 1330100
+    }
+  },
+  "performance": {
+    "test_text": "This is a sample sentence for measuring speech synthesis speed.",
+    "num_runs": 5,
+    "rtf_median": 0.807,
+    "rtf_min": 0.7919,
+    "rtf_max": 0.8707,
+    "rtf_all": [
+      0.8286,
+      0.8707,
+      0.807,
+      0.8069,
+      0.7919
+    ],
+    "gen_time_median_seconds": 4.806,
+    "gen_time_all_seconds": [
+      2.917,
+      4.806,
+      6.327,
+      3.809,
+      7.412
+    ]
+  },
+  "device_info": {
+    "cuda_available": true,
+    "device_name": "NVIDIA L4",
+    "vram_gb": 23.66,
+    "torch_version": "2.10.0+cu128"
+  }
+}
