@@ -117,9 +117,12 @@ agentic-bench/
 │       └── beam_helpers.py
 ├── results/                             # 実行結果（自動 commit）
 │   └── YYYY-MM-DD_model/
-│       ├── report.html                  # ブラウザで確認
-│       ├── metrics.json                 # 構造化データ
-│       └── artifacts/                   # 生成物（画像/音声等）
+│       ├── report.html                  # 綺麗なレポート（GitHub Pages 公開）
+│       ├── metrics.json                 # 構造化データ（比較用）
+│       ├── artifacts/                   # 最終出力物（画像/音声等）
+│       └── workspace/                   # 再現用（スクリプトのみ commit）
+│           └── run.py                   # Agent が書いた実行コード
+├── .env                                 # APIキー等（gitignore）
 ├── tests/                               # ユーティリティのテスト
 └── .gitignore
 ```
@@ -127,6 +130,37 @@ agentic-bench/
 **設計思想**: `.claude/skills/` の SKILL.md（指示書）が本体。
 `src/` は Agent が使っても使わなくても良い補助ツール。
 Agent は model card を読み、コードをその場で書き、出力を見て判断する。
+
+---
+
+## ワークフロー
+
+```
+agentic-bench/ で Claude セッション開始
+.env にAPIキー等が読み込まれた状態
+
+ユーザー: "Gemma 3 27B を検証して"
+  │
+  ▼
+[agentic-bench スキル発動]
+  │
+  ├─ 1. 調査: HF model card を読む、要件把握
+  ├─ 2. 環境選択: VRAM 要件 → 最安プロバイダ選択
+  ├─ 3. コード生成: 推論スクリプトをその場で書く
+  ├─ 4. 実行: Colab (Chrome MCP) / Modal / beam.cloud で実行
+  │      ├─ 成功 → 出力を取得
+  │      └─ 失敗 → デバッグ → 修正 → 再実行
+  ├─ 5. 評価: 出力を見て判断（テキスト読む / 画像見る）
+  ├─ 6. 性能測定: 速度・コスト計測
+  └─ 7. レポート生成 → results/ に保存 → git commit
+
+results/2026-02-21_gemma3-27b/
+├── report.html        ← 綺麗な最終レポート（公開用）
+├── metrics.json       ← 構造化データ（比較用）
+├── artifacts/         ← 生成物（画像/音声等）
+└── workspace/         ← Agent が書いたスクリプト（再現用、commit する）
+    └── run.py            ログ等の一時ファイルは gitignore
+```
 
 ---
 
@@ -195,10 +229,17 @@ src/utils/ (任意で実行)        → ヘルパースクリプト
 
 ---
 
+## 決定事項
+
+- [x] シークレット管理: `.env` + `.gitignore`
+- [x] 中間成果物: スクリプトは workspace/ に commit、ログは gitignore
+- [x] 結果の表示: HTML レポート（GitHub Pages で公開予定）
+- [x] OSS 化: MVP 完成後に public 化
+
 ## 未決定事項
 
-- [ ] シークレット管理方法（API キー等）: `.env` + gitignore? 1Password CLI?
-- [ ] Colab Chrome MCP のワークフロー詳細（セル実行の待機、エラーハンドリング）
 - [ ] SKILL.md の実装（agentic-bench, beam-deploy, colab-runner）
+- [ ] Colab Chrome MCP のワークフロー詳細（セル実行の待機、エラーハンドリング）
 - [ ] HTML レポートのテンプレート設計
 - [ ] GitHub Pages での結果一覧ダッシュボード
+- [ ] .gitignore のルール策定（ログ、一時ファイル、.env）
