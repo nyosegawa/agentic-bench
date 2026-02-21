@@ -92,28 +92,21 @@
 agentic-bench/
 ├── AGENTS.md / CLAUDE.md
 ├── .claude/
-│   └── skills/                          # Agent Skills（本体）
-│       ├── agentic-bench/               # メインスキル: 探索的モデル検証
-│       │   ├── SKILL.md                 # 指示書
-│       │   ├── scripts/                 # ヘルパースクリプト（任意で実行）
-│       │   │   ├── hf_model_info.py     # HF model card 情報取得
-│       │   │   ├── gpu_estimator.py     # VRAM 推定
-│       │   │   ├── report_generator.py  # HTML レポート生成
-│       │   │   └── metrics_writer.py    # metrics.json 書き出し
-│       │   ├── references/              # 必要時ロード
-│       │   │   ├── providers.md         # プロバイダ別ガイド
-│       │   │   └── report-format.md     # レポート仕様
-│       │   └── assets/                  # テンプレート等
-│       │       └── report_template.html # HTML レポートテンプレート
-│       ├── beam-deploy/                 # beam.cloud 専用スキル
-│       │   ├── SKILL.md
-│       │   ├── scripts/
-│       │   └── references/
-│       │       └── beam-sdk.md
-│       └── colab-runner/                # Colab Chrome MCP 専用スキル
-│           ├── SKILL.md
-│           └── references/
-│               └── chrome-mcp-tips.md
+│   └── skills/
+│       └── agentic-bench/               # 単一スキル（全てここに集約）
+│           ├── SKILL.md                 # 指示書
+│           ├── scripts/                 # ヘルパースクリプト（任意で実行）
+│           │   ├── hf_model_info.py     # HF model card 情報取得
+│           │   ├── gpu_estimator.py     # VRAM 推定
+│           │   ├── report_generator.py  # HTML レポート生成
+│           │   └── metrics_writer.py    # metrics.json 書き出し
+│           ├── references/              # 必要時ロード
+│           │   ├── beam-cloud.md        # beam.cloud SDK の使い方
+│           │   ├── colab-chrome-mcp.md  # Colab Chrome MCP 操作ガイド
+│           │   ├── modal.md             # Modal SDK の使い方
+│           │   └── report-format.md     # レポート仕様
+│           └── assets/                  # テンプレート等
+│               └── report_template.html
 ├── docs/                                # 設計ドキュメント
 │   └── architecture.md
 ├── research/                            # 調査メモ
@@ -125,12 +118,36 @@ agentic-bench/
 │       └── workspace/                   # 再現用（スクリプトのみ commit）
 │           └── run.py                   # Agent が書いた実行コード
 ├── .env                                 # APIキー等（gitignore）
+├── .env.example                         # 必要なキーの一覧（commit する）
 ├── tests/                               # scripts/ のテスト
 └── .gitignore
 ```
 
-**設計思想**: `.claude/skills/` が全て。SKILL.md（指示書）+ scripts/（ヘルパー）+ references/（知識）。
-Agent は scripts/ を使っても使わなくても良い。model card を読み、コードをその場で書き、出力を見て判断する。
+**設計思想**:
+- スキルは `agentic-bench` 1つに集約。プロバイダ知識は references/ に分離
+- scripts/ は Agent が任意で使えるヘルパー。使わなくても良い
+- プロバイダが増えたら references/ にファイルを足すだけ
+
+---
+
+## 環境変数 (.env)
+
+```bash
+# .env.example（リポジトリにcommit、値は空）
+HF_TOKEN=             # HuggingFace Pro トークン（必須）
+BEAM_TOKEN=           # beam.cloud API トークン（beam.cloud 使用時）
+MODAL_TOKEN_ID=       # Modal トークン ID（Modal 使用時）
+MODAL_TOKEN_SECRET=   # Modal トークンシークレット（Modal 使用時）
+OPENAI_API_KEY=       # OpenAI API キー（API モデル検証時）
+ANTHROPIC_API_KEY=    # Anthropic API キー（API モデル検証時）
+GOOGLE_API_KEY=       # Google AI API キー（API モデル検証時）
+```
+
+scripts/ 内のスクリプトは `python-dotenv` でリポジトリ root の `.env` を読む:
+```python
+from dotenv import load_dotenv
+load_dotenv()  # agentic-bench/.env
+```
 
 ---
 
@@ -147,7 +164,9 @@ agentic-bench/ で Claude セッション開始
   │
   ├─ 1. 調査: HF model card を読む、要件把握
   ├─ 2. 環境選択: VRAM 要件 → 最安プロバイダ選択
+  │      必要なら references/colab-chrome-mcp.md 等を参照
   ├─ 3. コード生成: 推論スクリプトをその場で書く
+  │      scripts/ のヘルパーを使うか、ゼロから書くかは Agent が判断
   ├─ 4. 実行: Colab (Chrome MCP) / Modal / beam.cloud で実行
   │      ├─ 成功 → 出力を取得
   │      └─ 失敗 → デバッグ → 修正 → 再実行
@@ -199,49 +218,40 @@ results/2026-02-21_gemma3-27b/
 
 ## Claude Code スキル (.claude/skills/)
 
-Agent Skills は「コード」ではなく「指示書」。
-Agent 自身が ML エンジニアとして探索的に検証する。
+**スキルは `agentic-bench` 1つのみ。** プロバイダ知識は references/ で Progressive Disclosure。
 
-### agentic-bench (メインスキル)
+### agentic-bench
 
 - **トリガー**: "〇〇を検証して", "モデルをベンチマーク", "新しいモデルを試して"
 - **動作**: model card を読む → 環境選択 → コードを書いて実行 → 出力を見て評価 → レポート
 - **自由度: 高い** — Agent が状況に応じて判断。固定パイプラインではない
 
-### beam-deploy (beam.cloud 専用)
-
-- **トリガー**: beam.cloud でのデプロイが必要な時に agentic-bench から呼ばれる
-- **動作**: beam.cloud SDK でサーバーレス関数を書いてデプロイ・実行
-- **自由度: 中** — SDK の使い方は決まっているが、デプロイ内容は可変
-
-### colab-runner (Colab 専用)
-
-- **トリガー**: Colab での実行が必要な時に agentic-bench から呼ばれる
-- **動作**: Chrome MCP で Colab を操作してモデルを実行
-- **自由度: 中** — ブラウザ操作の手順はある程度決まっている
-
 ### Progressive Disclosure
 
 ```
-SKILL.md (常時ロード)          → ゴール・戦略・判断基準
-references/ (必要時ロード)     → プロバイダ詳細・フォーマット仕様
-scripts/ (任意で実行)          → ヘルパースクリプト（コンテキスト不要で実行可能）
+SKILL.md (常時ロード)          → ゴール・戦略・判断基準・.env の使い方
+references/ (必要時ロード)     → プロバイダ別ガイド（beam-cloud.md, colab-chrome-mcp.md, modal.md）
+scripts/ (任意で実行)          → ヘルパースクリプト（.env を自動読み込み）
 assets/ (出力に使用)           → HTML テンプレート等
 ```
+
+プロバイダが増えたら references/ にファイルを追加するだけ。
+スキル自体を分割する必要はない。
 
 ---
 
 ## 決定事項
 
-- [x] シークレット管理: `.env` + `.gitignore`
+- [x] シークレット管理: `.env` + `.gitignore`、`.env.example` を commit
 - [x] 中間成果物: スクリプトは workspace/ に commit、ログは gitignore
 - [x] 結果の表示: HTML レポート（GitHub Pages で公開予定）
 - [x] OSS 化: MVP 完成後に public 化
+- [x] スキル構成: 単一スキル `agentic-bench` + references にプロバイダ知識
+- [x] scripts/ は .env を python-dotenv で読む
 
 ## 未決定事項
 
-- [ ] SKILL.md の実装（agentic-bench, beam-deploy, colab-runner）
-- [ ] Colab Chrome MCP のワークフロー詳細（セル実行の待機、エラーハンドリング）
+- [ ] SKILL.md の実装
 - [ ] HTML レポートのテンプレート設計
 - [ ] GitHub Pages での結果一覧ダッシュボード
-- [ ] .gitignore のルール策定（ログ、一時ファイル、.env）
+- [ ] .gitignore のルール策定
