@@ -116,6 +116,25 @@ class TestRecommendGpu:
         ]
         assert payg_rates == sorted(payg_rates)
 
+    def test_rtx4090_in_recommendations(self):
+        recs = recommend_gpu(20.0)  # 20GB needed — RTX4090 (24GB) fits
+        gpu_names = [r["gpu"] for r in recs]
+        assert "RTX4090" in gpu_names
+
+    def test_vast_cheapest_for_small_models(self):
+        recs = recommend_gpu(10.0)
+        # Vast T4 at $0.10/hr should be among the cheapest pay-as-you-go options
+        payg_recs = [r for r in recs if not r["prepaid"]]
+        if payg_recs:
+            cheapest = payg_recs[0]
+            assert cheapest["provider"] == "vast"
+
+    def test_vast_and_runpod_in_providers(self):
+        recs = recommend_gpu(20.0)
+        providers = {r["provider"] for r in recs}
+        assert "vast" in providers
+        assert "runpod" in providers
+
     def test_no_recommendation_for_huge(self):
         recs = recommend_gpu(200.0)  # 200GB — nothing fits
         assert len(recs) == 0
@@ -160,6 +179,8 @@ class TestCheckAvailableProviders:
             "MODAL_TOKEN_ID": "ak-xxx",
             "MODAL_TOKEN_SECRET": "as-xxx",
             "BEAM_TOKEN": "bt-xxx",
+            "VAST_API_KEY": "vast-xxx",
+            "RUNPOD_API_KEY": "rpa-xxx",
         }
         with mock.patch.dict(os.environ, env, clear=False):
             available = check_available_providers()
@@ -168,15 +189,23 @@ class TestCheckAvailableProviders:
         assert available["colab"] is True  # no token needed
         assert available["modal"] is True
         assert available["beam"] is True
+        assert available["vast"] is True
+        assert available["runpod"] is True
 
     def test_only_hf_token(self):
         env = {"HF_TOKEN": "hf_xxx"}
-        # Clear Modal/Beam tokens
+        # Clear Modal/Beam/Vast/RunPod tokens
         with (
             mock.patch.dict(os.environ, env, clear=False),
             mock.patch.dict(
                 os.environ,
-                {"MODAL_TOKEN_ID": "", "MODAL_TOKEN_SECRET": "", "BEAM_TOKEN": ""},
+                {
+                    "MODAL_TOKEN_ID": "",
+                    "MODAL_TOKEN_SECRET": "",
+                    "BEAM_TOKEN": "",
+                    "VAST_API_KEY": "",
+                    "RUNPOD_API_KEY": "",
+                },
             ),
         ):
             available = check_available_providers()
@@ -185,11 +214,20 @@ class TestCheckAvailableProviders:
         assert available["colab"] is True
         assert available["modal"] is False
         assert available["beam"] is False
+        assert available["vast"] is False
+        assert available["runpod"] is False
 
     def test_no_tokens(self):
         with mock.patch.dict(
             os.environ,
-            {"HF_TOKEN": "", "MODAL_TOKEN_ID": "", "MODAL_TOKEN_SECRET": "", "BEAM_TOKEN": ""},
+            {
+                "HF_TOKEN": "",
+                "MODAL_TOKEN_ID": "",
+                "MODAL_TOKEN_SECRET": "",
+                "BEAM_TOKEN": "",
+                "VAST_API_KEY": "",
+                "RUNPOD_API_KEY": "",
+            },
         ):
             available = check_available_providers()
         assert available["hf_inference"] is False
@@ -197,6 +235,8 @@ class TestCheckAvailableProviders:
         assert available["colab"] is True  # always available
         assert available["modal"] is False
         assert available["beam"] is False
+        assert available["vast"] is False
+        assert available["runpod"] is False
 
 
 class TestRecommendGpuFilterAvailable:
@@ -206,14 +246,22 @@ class TestRecommendGpuFilterAvailable:
             mock.patch.dict(os.environ, env, clear=False),
             mock.patch.dict(
                 os.environ,
-                {"MODAL_TOKEN_ID": "", "MODAL_TOKEN_SECRET": "", "BEAM_TOKEN": ""},
+                {
+                    "MODAL_TOKEN_ID": "",
+                    "MODAL_TOKEN_SECRET": "",
+                    "BEAM_TOKEN": "",
+                    "VAST_API_KEY": "",
+                    "RUNPOD_API_KEY": "",
+                },
             ),
         ):
             recs = recommend_gpu(10.0, filter_available=True)
         providers = {r["provider"] for r in recs}
-        # Only hf_endpoints and colab should remain (modal/beam filtered out)
+        # Only hf_endpoints and colab should remain (modal/beam/vast/runpod filtered out)
         assert "modal" not in providers
         assert "beam" not in providers
+        assert "vast" not in providers
+        assert "runpod" not in providers
         assert "hf_endpoints" in providers
         assert "colab" in providers
 
@@ -224,6 +272,7 @@ class TestRecommendGpuFilterAvailable:
         assert "colab" in providers
         assert "modal" in providers
         assert "beam" in providers
+        assert "vast" in providers
 
 
 class TestEstimateWithEnvCheck:
@@ -233,13 +282,21 @@ class TestEstimateWithEnvCheck:
             mock.patch.dict(os.environ, env, clear=False),
             mock.patch.dict(
                 os.environ,
-                {"MODAL_TOKEN_ID": "", "MODAL_TOKEN_SECRET": "", "BEAM_TOKEN": ""},
+                {
+                    "MODAL_TOKEN_ID": "",
+                    "MODAL_TOKEN_SECRET": "",
+                    "BEAM_TOKEN": "",
+                    "VAST_API_KEY": "",
+                    "RUNPOD_API_KEY": "",
+                },
             ),
         ):
             result = estimate(7_000_000_000, "fp16", "llm", filter_available=True)
         assert "provider_availability" in result
         assert result["provider_availability"]["hf_inference"] is True
         assert result["provider_availability"]["modal"] is False
+        assert result["provider_availability"]["vast"] is False
+        assert result["provider_availability"]["runpod"] is False
 
     def test_no_filter_no_provider_status(self):
         result = estimate(7_000_000_000, "fp16", "llm", filter_available=False)
@@ -282,3 +339,30 @@ class TestEstimateCost:
         assert cost["estimated_duration_min"] == BENCH_DURATION_MINUTES["embedding"]
         # 5 min at $1.17/hr ≈ $0.10
         assert cost["estimated_cost_usd"] < 0.15
+
+    def test_vast_rtx4090_tts(self):
+        cost = estimate_cost("RTX4090", "vast", "tts")
+        assert cost["provider"] == "vast"
+        assert cost["hourly_rate_usd"] == GPU_PRICING["vast"]["RTX4090"]
+        assert cost["estimated_duration_min"] == BENCH_DURATION_MINUTES["tts"]
+        # 10 min at $0.15/hr = $0.025
+        assert cost["estimated_cost_usd"] < 0.05
+
+    def test_vast_h100_llm(self):
+        cost = estimate_cost("H100", "vast", "llm")
+        assert cost["hourly_rate_usd"] == GPU_PRICING["vast"]["H100"]
+        # 15 min at $2.00/hr = $0.50
+        assert 0.45 < cost["estimated_cost_usd"] < 0.55
+
+    def test_runpod_rtx4090_tts(self):
+        cost = estimate_cost("RTX4090", "runpod", "tts")
+        assert cost["provider"] == "runpod"
+        assert cost["hourly_rate_usd"] == GPU_PRICING["runpod"]["RTX4090"]
+        # 10 min at $0.34/hr ≈ $0.057
+        assert cost["estimated_cost_usd"] < 0.10
+
+    def test_runpod_a100_80gb_llm(self):
+        cost = estimate_cost("A100-80GB", "runpod", "llm")
+        assert cost["hourly_rate_usd"] == GPU_PRICING["runpod"]["A100-80GB"]
+        # 15 min at $1.19/hr ≈ $0.30
+        assert 0.25 < cost["estimated_cost_usd"] < 0.35

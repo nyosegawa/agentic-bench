@@ -3,10 +3,10 @@ name: gpu-runner
 description: >-
   Execute model inference on GPU cloud providers. Handles code generation, deployment,
   execution, and result collection across HF Inference API/Endpoints, Colab, Modal,
-  and beam.cloud. Use when running models on GPU, deploying to cloud, executing notebooks,
-  or troubleshooting GPU execution failures.
+  beam.cloud, Vast.ai, and RunPod. Use when running models on GPU, deploying to cloud,
+  executing notebooks, or troubleshooting GPU execution failures.
   Triggers on "run on GPU", "execute model", "deploy to modal", "colab notebook",
-  "beam deploy", "HF inference", "HF endpoints".
+  "beam deploy", "HF inference", "HF endpoints", "vast", "runpod".
 ---
 
 # GPU Runner
@@ -30,6 +30,8 @@ Check `.env` for available credentials, then sort by **cheapest hourly cost**:
 3. **Colab Pro** — Chrome MCP. No token needed. $9.99/month subscription. Up to ~30B.
 4. **Modal** — Requires `MODAL_TOKEN_ID` + `MODAL_TOKEN_SECRET`. $30/month free tier. $0.59–3.95/hr.
 5. **beam.cloud** — Requires `BEAM_TOKEN`. Existing credit. $0.54–3.50/hr.
+6. **Vast.ai** — Requires `VAST_API_KEY`. Marketplace pricing (cheapest GPUs). $0.10–2.00/hr.
+7. **RunPod** — Requires `RUNPOD_API_KEY`. Pods + Serverless. $0.34–2.69/hr.
 
 **Token availability check**: If a provider's env vars are not set, skip it.
 
@@ -44,6 +46,8 @@ Before executing, read the relevant provider reference:
 | Colab Pro | `references/colab-chrome-mcp.md` | Up to ~30B, interactive debugging |
 | Modal | `references/modal.md` | 30B+, serverless, reliable GPUs |
 | beam.cloud | `references/beam-cloud.md` | Dedicated endpoints, existing credit |
+| Vast.ai | `references/vast.md` | Cheapest GPUs, marketplace pricing |
+| RunPod | `references/runpod.md` | Pods (persistent VMs), balanced price/reliability |
 
 ### HF Inference API (inline — simple enough)
 
@@ -104,6 +108,8 @@ Save the script to `results/YYYY-MM-DD_modelname/workspace/run.py`.
 - **Colab**: Use Chrome MCP to create/run notebook cells
 - **Modal**: Deploy function and call `.remote()`
 - **beam.cloud**: Deploy endpoint and call via HTTP
+- **Vast.ai**: Create instance via SDK, SSH + SCP for execution
+- **RunPod**: Create Pod via SDK, SSH for execution
 
 ### Step 3: Collect Results
 

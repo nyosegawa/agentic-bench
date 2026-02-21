@@ -38,13 +38,18 @@ BYTES_PER_PARAM = {
 
 # Available GPUs sorted by VRAM
 GPUS = [
-    {"name": "T4", "vram_gb": 16, "providers": ["hf_endpoints", "colab", "modal", "beam"]},
-    {"name": "L4", "vram_gb": 24, "providers": ["hf_endpoints", "colab", "modal"]},
+    {"name": "T4", "vram_gb": 16, "providers": ["hf_endpoints", "colab", "modal", "beam", "vast"]},
+    {"name": "L4", "vram_gb": 24, "providers": ["hf_endpoints", "colab", "modal", "runpod"]},
     {"name": "A10G", "vram_gb": 24, "providers": ["hf_endpoints", "beam"]},
-    {"name": "A100-40GB", "vram_gb": 40, "providers": ["colab", "modal", "beam"]},
+    {"name": "RTX4090", "vram_gb": 24, "providers": ["vast", "runpod"]},
+    {"name": "A100-40GB", "vram_gb": 40, "providers": ["colab", "modal", "beam", "vast"]},
     {"name": "L40S", "vram_gb": 48, "providers": ["hf_endpoints"]},
-    {"name": "A100-80GB", "vram_gb": 80, "providers": ["hf_endpoints", "modal", "beam"]},
-    {"name": "H100", "vram_gb": 80, "providers": ["modal", "beam"]},
+    {
+        "name": "A100-80GB",
+        "vram_gb": 80,
+        "providers": ["hf_endpoints", "modal", "beam", "vast", "runpod"],
+    },
+    {"name": "H100", "vram_gb": 80, "providers": ["modal", "beam", "vast", "runpod"]},
 ]
 
 # Provider env var requirements — used to check which providers are available
@@ -54,6 +59,8 @@ PROVIDER_ENV_VARS: dict[str, list[str]] = {
     "colab": [],  # Chrome MCP, no token needed
     "modal": ["MODAL_TOKEN_ID", "MODAL_TOKEN_SECRET"],
     "beam": ["BEAM_TOKEN"],
+    "vast": ["VAST_API_KEY"],
+    "runpod": ["RUNPOD_API_KEY"],
 }
 
 # Provider cost priority (lower = cheaper, used as tiebreaker)
@@ -63,6 +70,8 @@ PROVIDER_COST_RANK = {
     "colab": 2,
     "modal": 3,
     "beam": 4,
+    "vast": 5,
+    "runpod": 6,
 }
 
 # GPU pricing per hour (USD) by provider — updated 2026-02
@@ -83,6 +92,19 @@ GPU_PRICING: dict[str, dict[str, float]] = {
         "H100": 3.95,
     },
     "beam": {"T4": 0.54, "A100-40GB": 2.75, "H100": 3.50},
+    "vast": {
+        "T4": 0.10,
+        "RTX4090": 0.15,
+        "A100-40GB": 0.75,
+        "A100-80GB": 1.10,
+        "H100": 2.00,
+    },
+    "runpod": {
+        "L4": 0.44,
+        "RTX4090": 0.34,
+        "A100-80GB": 1.19,
+        "H100": 2.69,
+    },
 }
 
 # Monthly subscriptions / free credits
@@ -113,6 +135,16 @@ SUBSCRIPTION_COSTS: dict[str, dict] = {
         "monthly_usd": 0.0,
         "prepaid": False,
         "note": "Pay-as-you-go",
+    },
+    "vast": {
+        "monthly_usd": 0.0,
+        "prepaid": False,
+        "note": "Marketplace pricing, prepaid credits",
+    },
+    "runpod": {
+        "monthly_usd": 0.0,
+        "prepaid": False,
+        "note": "Pay-as-you-go, per-second billing",
     },
 }
 

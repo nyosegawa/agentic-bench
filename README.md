@@ -30,6 +30,8 @@ HF_TOKEN=hf_xxxxxxxx          # https://huggingface.co/settings/tokens
 MODAL_TOKEN_ID=xxx             # Modal: modal token new で取得
 MODAL_TOKEN_SECRET=xxx
 BEAM_TOKEN=xxx                 # beam.cloud: beam config create で取得
+VAST_API_KEY=xxx               # Vast.ai: https://cloud.vast.ai/account/
+RUNPOD_API_KEY=xxx             # RunPod: https://www.runpod.io/console/user/settings
 
 # [任意] API モデル検証用（GPT-4o, Claude 等を検証する場合）
 OPENAI_API_KEY=sk-xxx
@@ -42,7 +44,7 @@ GOOGLE_API_KEY=xxx
 - **HF Inference Endpoints** — 任意モデルを専用 GPU にデプロイ（従量制 $0.50–2.50/hr）
 
 GPU 実行は Colab Pro（Chrome MCP 経由、追加トークン不要）も利用可能。
-Modal/beam.cloud は各トークンの設定が必要。
+Modal/beam.cloud/Vast.ai/RunPod は各トークンの設定が必要。
 
 ### 3. 使い方
 
@@ -112,7 +114,9 @@ python .claude/skills/model-researcher/scripts/gpu_estimator.py --params 7B --qu
 │       ├── hf-endpoints.md         # HF Inference Endpoints
 │       ├── colab-chrome-mcp.md
 │       ├── modal.md
-│       └── beam-cloud.md
+│       ├── beam-cloud.md
+│       ├── vast.md
+│       └── runpod.md
 └── eval-reporter/          # Phase 3: レポート生成
     ├── SKILL.md
     ├── scripts/
@@ -156,6 +160,8 @@ python .claude/skills/model-researcher/scripts/gpu_estimator.py --params 7B --qu
 | Colab Pro | なし | $9.99/月 サブスク | ~30B、Chrome MCP |
 | Modal | MODAL_TOKEN_ID/SECRET | $0.59–3.95/hr ($30/月無料) | サーバーレス |
 | beam.cloud | BEAM_TOKEN | $0.54–3.50/hr | 専用エンドポイント |
+| Vast.ai | VAST_API_KEY | $0.10–2.00/hr | マーケットプレイス最安 GPU |
+| RunPod | RUNPOD_API_KEY | $0.34–2.69/hr | Pod（永続 VM） |
 
 > **Note:** プロバイダの無料枠・クレジット残量はランタイムで確認していない。HF Pro や Colab Pro のサブスク加入、Modal の無料クレジット残量はコード上の静的な仮定であり、実際の残量を API で問い合わせるわけではない。枠切れ時はエージェントが実行失敗を検知し、次に安いプロバイダへ自動フォールバックする。Colab は API ではなく Chrome MCP（ブラウザ自動操作）で実行するため、Chrome MCP 拡張が必要。
 

@@ -95,6 +95,8 @@ Sort by **cheapest hourly cost**, check `.env` for token availability:
 4. **Colab Pro** — Up to ~30B. Chrome MCP. No extra token needed.
 5. **Modal** — Serverless GPU. Requires `MODAL_TOKEN_ID` + `MODAL_TOKEN_SECRET`. $30/mo free.
 6. **beam.cloud** — Dedicated endpoints. Requires `BEAM_TOKEN`.
+7. **Vast.ai** — Marketplace pricing (cheapest GPUs). Requires `VAST_API_KEY`. $0.10–2.00/hr.
+8. **RunPod** — Pods (persistent VMs). Requires `RUNPOD_API_KEY`. $0.34–2.69/hr.
 
 gpu_estimator.py outputs cost-sorted recommendations. Use that to pick the cheapest viable option.
 
