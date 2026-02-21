@@ -1,0 +1,106 @@
+---
+name: gpu-runner
+description: >-
+  Execute model inference on GPU cloud providers. Handles code generation, deployment,
+  execution, and result collection across Colab, Modal, beam.cloud, and HF Inference API.
+  Use when running models on GPU, deploying to cloud, executing notebooks,
+  or troubleshooting GPU execution failures.
+  Triggers on "run on GPU", "execute model", "deploy to modal", "colab notebook",
+  "beam deploy", "HF inference".
+---
+
+# GPU Runner
+
+You are executing model inference on the appropriate GPU cloud provider.
+
+## Your Goal
+
+Given a model, its requirements, and a chosen provider:
+1. Write inference code tailored to the model
+2. Execute it on the selected provider
+3. Collect outputs (text, images, audio, metrics)
+4. Handle errors and retry with alternatives if needed
+
+## Provider Selection (if not pre-selected)
+
+Check `.env` for available credentials, then follow priority:
+
+1. **HF Inference API** — Simplest. REST call. Free with HF Pro.
+2. **Google Colab Pro** — Chrome MCP. Good for interactive debugging. Already paid.
+3. **Modal** — Python SDK. Best DX for serverless GPU. $30/month free tier.
+4. **beam.cloud** — Python SDK. Good for dedicated endpoints. Existing credit.
+
+## Provider-Specific Guides
+
+Before executing, read the relevant provider reference:
+
+| Provider | Reference | When to Use |
+|----------|-----------|------------|
+| HF Inference API | (inline below) | Model on HF, API-supported, small enough |
+| Colab Pro | `references/colab-chrome-mcp.md` | Up to ~30B, interactive debugging |
+| Modal | `references/modal.md` | 30B+, serverless, reliable GPUs |
+| beam.cloud | `references/beam-cloud.md` | Dedicated endpoints, existing credit |
+
+### HF Inference API (inline — simple enough)
+
+```python
+import os
+from huggingface_hub import InferenceClient
+
+client = InferenceClient(token=os.environ["HF_TOKEN"])
+
+# Text generation
+response = client.text_generation("Hello, ", model="MODEL_ID", max_new_tokens=100)
+
+# Image generation
+image = client.text_to_image("A cat", model="MODEL_ID")
+image.save("output.png")
+```
+
+## Execution Workflow
+
+### Step 1: Write Inference Code
+
+Based on model type and provider, write a self-contained script:
+- Import all dependencies
+- Load model (with appropriate dtype/device settings)
+- Run inference with test inputs
+- Save outputs to files
+- Print structured metrics (timing, token counts, etc.)
+
+Save the script to `results/YYYY-MM-DD_modelname/workspace/run.py`.
+
+### Step 2: Execute
+
+- **HF Inference API**: Run directly in the current environment
+- **Colab**: Use Chrome MCP to create/run notebook cells
+- **Modal**: Deploy function and call `.remote()`
+- **beam.cloud**: Deploy endpoint and call via HTTP
+
+### Step 3: Collect Results
+
+Ensure all outputs are saved to `results/YYYY-MM-DD_modelname/`:
+- `artifacts/` — Generated files (images, audio, text outputs)
+- `workspace/run.py` — The execution script (for reproducibility)
+
+### Step 4: Handle Failures
+
+Common failure patterns and recovery:
+
+| Error | Recovery |
+|-------|---------|
+| OOM (CUDA out of memory) | Try quantization (int8/int4), smaller batch, or bigger GPU |
+| Colab GPU unavailable | Fall back to Modal |
+| Modal timeout | Increase timeout, or use beam.cloud |
+| Import error | Install missing dependency in the execution environment |
+| Model not found | Verify model ID, check if gated (needs HF token) |
+
+If a provider fails after 2 attempts, try the next provider in priority order.
+
+## Important
+
+- Always use `torch.bfloat16` or `torch.float16` for GPU models (never fp32)
+- Set `device_map="auto"` for large models
+- Include timing measurements in the execution script
+- Save ALL outputs — even errors are valuable for the report
+- Load `.env` with `python-dotenv` for API tokens

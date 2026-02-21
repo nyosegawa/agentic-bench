@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ metrics.model }} — agentic-bench Report</title>
+<style>
+  :root { --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --border: #30363d;
+    --green: #3fb950; --red: #f85149; --blue: #58a6ff; --card: #161b22; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6; padding: 2rem; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.3rem; margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.8rem; font-weight: 600; }
+  .badge-pass { background: rgba(63,185,80,0.2); color: var(--green); }
+  .badge-fail { background: rgba(248,81,73,0.2); color: var(--red); }
+  .badge-skip { background: rgba(139,148,158,0.2); color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1.2rem; margin: 1rem 0; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; font-size: 0.85rem; text-transform: uppercase; }
+  .metric-value { font-size: 1.5rem; font-weight: 700; color: var(--blue); }
+  .metric-label { font-size: 0.8rem; color: var(--muted); }
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+  img { max-width: 100%; border-radius: 0.5rem; margin: 0.5rem 0; }
+  audio { width: 100%; margin: 0.5rem 0; }
+  pre { background: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;
+    padding: 1rem; overflow-x: auto; font-size: 0.85rem; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 0.8rem; }
+</style>
+</head>
+<body>
+
+<h1>{{ metrics.model }}</h1>
+<div class="meta">
+  {{ metrics.model_type }} · {{ metrics.provider }}
+  {% if metrics.gpu %} · {{ metrics.gpu }}{% endif %}
+  · {{ metrics.run_id[:10] }}
+</div>
+
+<!-- Summary -->
+<div class="metrics-grid">
+  {% if metrics.stages.smoke %}
+  <div class="card">
+    <div class="metric-label">Smoke Test</div>
+    <div>
+      {% if metrics.stages.smoke.status == 'pass' %}
+        <span class="badge badge-pass">PASS</span>
+      {% elif metrics.stages.smoke.status == 'fail' %}
+        <span class="badge badge-fail">FAIL</span>
+      {% else %}
+        <span class="badge badge-skip">SKIP</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if metrics.stages.performance %}
+  {% set perf = metrics.stages.performance %}
+  {% if perf.tokens_per_second %}
+  <div class="card">
+    <div class="metric-label">Throughput</div>
+    <div class="metric-value">{{ "%.1f"|format(perf.tokens_per_second) }}</div>
+    <div class="metric-label">tokens/sec</div>
+  </div>
+  {% endif %}
+  {% if perf.sec_per_image %}
+  <div class="card">
+    <div class="metric-label">Speed</div>
+    <div class="metric-value">{{ "%.1f"|format(perf.sec_per_image) }}s</div>
+    <div class="metric-label">per image</div>
+  </div>
+  {% endif %}
+  {% if perf.rtf %}
+  <div class="card">
+    <div class="metric-label">RTF</div>
+    <div class="metric-value">{{ "%.2f"|format(perf.rtf) }}</div>
+    <div class="metric-label">real-time factor</div>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  {% if metrics.cost_usd is not none %}
+  <div class="card">
+    <div class="metric-label">Cost</div>
+    <div class="metric-value">${{ "%.2f"|format(metrics.cost_usd) }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Smoke Test -->
+{% if metrics.stages.smoke %}
+<h2>Smoke Test</h2>
+<div class="card">
+  <table>
+    <tr><th>Status</th><td>{{ metrics.stages.smoke.status }}</td></tr>
+    {% if metrics.stages.smoke.load_time_seconds %}
+    <tr><th>Load Time</th><td>{{ "%.1f"|format(metrics.stages.smoke.load_time_seconds) }}s</td></tr>
+    {% endif %}
+    {% if metrics.stages.smoke.notes %}
+    <tr><th>Notes</th><td>{{ metrics.stages.smoke.notes }}</td></tr>
+    {% endif %}
+  </table>
+</div>
+{% endif %}
+
+<!-- Quality -->
+{% if metrics.stages.quality %}
+<h2>Quality</h2>
+
+{% if artifacts.images %}
+<div class="gallery">
+  {% for img in artifacts.images %}
+  <div>
+    <img src="{{ img.path }}" alt="{{ img.name }}">
+    <div class="metric-label">{{ img.name }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if artifacts.audio %}
+<div class="card">
+  {% for aud in artifacts.audio %}
+  <div style="margin-bottom: 1rem;">
+    <div class="metric-label">{{ aud.name }}</div>
+    <audio controls><source src="{{ aud.path }}"></audio>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if text_contents %}
+<div class="card">
+  {% for txt in text_contents %}
+  <div style="margin-bottom: 1rem;">
+    <div class="metric-label">{{ txt.name }}</div>
+    <pre>{{ txt.content }}</pre>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if metrics.stages.quality.notes %}
+<div class="card">
+  <p>{{ metrics.stages.quality.notes }}</p>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Performance -->
+{% if metrics.stages.performance %}
+<h2>Performance</h2>
+<div class="card">
+  <table>
+    {% set perf = metrics.stages.performance %}
+    {% if perf.tokens_per_second %}<tr><th>Tokens/sec</th><td>{{ "%.1f"|format(perf.tokens_per_second) }}</td></tr>{% endif %}
+    {% if perf.latency_p50_ms %}<tr><th>Latency p50</th><td>{{ "%.1f"|format(perf.latency_p50_ms) }} ms</td></tr>{% endif %}
+    {% if perf.latency_p99_ms %}<tr><th>Latency p99</th><td>{{ "%.1f"|format(perf.latency_p99_ms) }} ms</td></tr>{% endif %}
+    {% if perf.sec_per_image %}<tr><th>Sec/image</th><td>{{ "%.1f"|format(perf.sec_per_image) }}</td></tr>{% endif %}
+    {% if perf.rtf %}<tr><th>RTF</th><td>{{ "%.2f"|format(perf.rtf) }}</td></tr>{% endif %}
+    {% if perf.mae %}<tr><th>MAE</th><td>{{ "%.4f"|format(perf.mae) }}</td></tr>{% endif %}
+    {% if perf.rmse %}<tr><th>RMSE</th><td>{{ "%.4f"|format(perf.rmse) }}</td></tr>{% endif %}
+    {% if perf.num_runs %}<tr><th>Runs</th><td>{{ perf.num_runs }}</td></tr>{% endif %}
+  </table>
+</div>
+{% endif %}
+
+<footer>
+  <p>Generated by <strong>agentic-bench</strong> · {{ metrics.run_id }}</p>
+  {% if metrics.duration_seconds %}
+  <p>Total duration: {{ "%.0f"|format(metrics.duration_seconds) }}s</p>
+  {% endif %}
+</footer>
+
+</body>
+</html>
