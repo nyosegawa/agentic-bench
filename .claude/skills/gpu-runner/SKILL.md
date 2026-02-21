@@ -2,11 +2,11 @@
 name: gpu-runner
 description: >-
   Execute model inference on GPU cloud providers. Handles code generation, deployment,
-  execution, and result collection across Colab, Modal, beam.cloud, and HF Inference API.
-  Use when running models on GPU, deploying to cloud, executing notebooks,
+  execution, and result collection across HF Inference API/Endpoints, Colab, Modal,
+  and beam.cloud. Use when running models on GPU, deploying to cloud, executing notebooks,
   or troubleshooting GPU execution failures.
   Triggers on "run on GPU", "execute model", "deploy to modal", "colab notebook",
-  "beam deploy", "HF inference".
+  "beam deploy", "HF inference", "HF endpoints".
 ---
 
 # GPU Runner
@@ -23,12 +23,15 @@ Given a model, its requirements, and a chosen provider:
 
 ## Provider Selection (if not pre-selected)
 
-Check `.env` for available credentials, then follow priority:
+Check `.env` for available credentials, then sort by **cheapest hourly cost**:
 
-1. **HF Inference API** — Simplest. REST call. Free with HF Pro.
-2. **Google Colab Pro** — Chrome MCP. Good for interactive debugging. Already paid.
-3. **Modal** — Python SDK. Best DX for serverless GPU. $30/month free tier.
-4. **beam.cloud** — Python SDK. Good for dedicated endpoints. Existing credit.
+1. **HF Inference API** — Free with HF Pro. Requires `HF_TOKEN`. Catalog models only.
+2. **HF Inference Endpoints** — Any HF model on dedicated GPU. `HF_TOKEN` only. $0.50–2.50/hr.
+3. **Colab Pro** — Chrome MCP. No token needed. $9.99/month subscription. Up to ~30B.
+4. **Modal** — Requires `MODAL_TOKEN_ID` + `MODAL_TOKEN_SECRET`. $30/month free tier. $0.59–3.95/hr.
+5. **beam.cloud** — Requires `BEAM_TOKEN`. Existing credit. $0.54–3.50/hr.
+
+**Token availability check**: If a provider's env vars are not set, skip it.
 
 ## Provider-Specific Guides
 
@@ -36,7 +39,8 @@ Before executing, read the relevant provider reference:
 
 | Provider | Reference | When to Use |
 |----------|-----------|------------|
-| HF Inference API | (inline below) | Model on HF, API-supported, small enough |
+| HF Inference API | (inline below) | Model on HF, API-supported, free |
+| HF Inference Endpoints | `references/hf-endpoints.md` | Any HF model, cheapest dedicated GPU |
 | Colab Pro | `references/colab-chrome-mcp.md` | Up to ~30B, interactive debugging |
 | Modal | `references/modal.md` | 30B+, serverless, reliable GPUs |
 | beam.cloud | `references/beam-cloud.md` | Dedicated endpoints, existing credit |

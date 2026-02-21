@@ -83,13 +83,16 @@ For unknown model types: research the model's documentation and design an approp
 
 ### Step 4: Select Provider
 
-Priority chain (cheapest first, prefer already-paid services):
+Sort by **cheapest hourly cost**, check `.env` for token availability:
 
 1. **Direct API** — For API-hosted models (GPT-4o, Claude, Gemini). No GPU needed.
-2. **HF Inference API** — If model is on HF and API-supported. Free with HF Pro.
-3. **Colab Pro** — Up to ~30B params. Chrome MCP for notebook control. Already paid.
-4. **Modal** — 30B+ or when Colab GPUs unavailable. $30/month free tier.
-5. **beam.cloud** — Alternative for dedicated deployments. Existing credit.
+2. **HF Inference API** — Free with HF Pro. Catalog models only. Requires `HF_TOKEN`.
+3. **HF Inference Endpoints** — Any HF model. Cheapest dedicated GPU ($0.50–2.50/hr). `HF_TOKEN` only.
+4. **Colab Pro** — Up to ~30B. Chrome MCP. No extra token needed.
+5. **Modal** — Serverless GPU. Requires `MODAL_TOKEN_ID` + `MODAL_TOKEN_SECRET`. $30/mo free.
+6. **beam.cloud** — Dedicated endpoints. Requires `BEAM_TOKEN`.
+
+gpu_estimator.py outputs cost-sorted recommendations. Use that to pick the cheapest viable option.
 
 ### Step 5: Output Research Summary
 

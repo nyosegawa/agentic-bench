@@ -65,8 +65,9 @@ If cost exceeds $5, explicitly warn and ask for confirmation. For free options (
 
 Consult the **gpu-runner** skill knowledge:
 
-1. Choose provider based on research (check `.env` for available credentials)
+1. Choose provider based on research (check `.env` for available credentials, pick cheapest)
 2. Read the provider reference from `.claude/skills/gpu-runner/references/`:
+   - HF Endpoints → `hf-endpoints.md`
    - Colab → `colab-chrome-mcp.md`
    - Modal → `modal.md`
    - beam.cloud → `beam-cloud.md`

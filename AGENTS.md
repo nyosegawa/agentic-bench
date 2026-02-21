@@ -11,6 +11,10 @@
 3. Keep provider adapters behind clean interfaces so core logic remains testable.
 4. Never merge code that breaks existing tests.
 5. Build skills following `references/skill-bestpractice.md` (gitignored, local only).
+## Knowledge Management
+1. Store investigation findings in `research/` (pure research data only, no tasks/TODOs).
+2. Keep `docs/architecture.md` and `README.md` in sync with implementation changes.
+3. When adding providers, model types, or scripts, update all relevant docs in the same commit.
 ## Required Flow Per Change
 1. Implement the change.
 2. Add or update tests for any core logic touched.

@@ -37,8 +37,12 @@ ANTHROPIC_API_KEY=sk-ant-xxx
 GOOGLE_API_KEY=xxx
 ```
 
-**最小構成**: `HF_TOKEN` だけで HF Inference API 経由のモデル検証が可能（無料）。
-GPU 実行が必要なモデルは Colab Pro（Chrome MCP 経由）か Modal/beam.cloud の設定が必要。
+**最小構成**: `HF_TOKEN` だけで以下が利用可能:
+- **HF Inference API** — 対応モデルの推論（無料）
+- **HF Inference Endpoints** — 任意モデルを専用 GPU にデプロイ（従量制 $0.50–2.50/hr）
+
+GPU 実行は Colab Pro（Chrome MCP 経由、追加トークン不要）も利用可能。
+Modal/beam.cloud は各トークンの設定が必要。
 
 ### 3. 使い方
 
@@ -56,7 +60,7 @@ claude
 スキルが自動でトリガーされ、以下が実行される:
 
 1. **Research** — モデル情報取得、VRAM 推定、コスト見積もり
-2. **Cost Gate** — コスト推定を提示（$5 超えなら確認を求める）
+2. **Cost Gate** — コスト推定を提示（$5 超なら確認を求める）
 3. **Execute** — 推論コードを書いて GPU で実行
 4. **Report** — HTML レポート + metrics.json を生成
 
@@ -90,28 +94,22 @@ python .claude/skills/model-researcher/scripts/gpu_estimator.py --params 7B --qu
 │   └── SKILL.md
 ├── model-researcher/       # Phase 1: 調査
 │   ├── SKILL.md
-│   ├── scripts/            # ヘルパースクリプト（オプション）
+│   ├── scripts/            # ヘルパースクリプト
 │   │   ├── hf_model_info.py
 │   │   ├── hf_inference_check.py
 │   │   ├── hf_model_search.py
 │   │   └── gpu_estimator.py
 │   └── references/         # 評価ガイド（12 種別対応）
-│       ├── eval-llm.md
-│       ├── eval-vlm.md
-│       ├── eval-code-gen.md
-│       ├── eval-embedding.md
-│       ├── eval-image.md
-│       ├── eval-tts.md
-│       ├── eval-stt.md
-│       ├── eval-audio.md
-│       ├── eval-video-gen.md
-│       ├── eval-object-detection.md
-│       ├── eval-3d-gen.md
+│       ├── eval-llm.md, eval-vlm.md, eval-code-gen.md
+│       ├── eval-embedding.md, eval-image.md, eval-tts.md
+│       ├── eval-stt.md, eval-audio.md, eval-video-gen.md
+│       ├── eval-object-detection.md, eval-3d-gen.md
 │       └── eval-timeseries.md
 ├── gpu-runner/             # Phase 2: GPU 実行
 │   ├── SKILL.md
 │   └── references/
 │       ├── inference-patterns.md   # 種別ごとの推論コード例
+│       ├── hf-endpoints.md         # HF Inference Endpoints
 │       ├── colab-chrome-mcp.md
 │       ├── modal.md
 │       └── beam-cloud.md
@@ -150,14 +148,17 @@ python .claude/skills/model-researcher/scripts/gpu_estimator.py --params 7B --qu
 | 3D 生成 | TripoSR, Shap-E | 生成時間, メッシュ品質 |
 | 時系列 | Chronos, TimesFM | MAE/RMSE |
 
-## GPU プロバイダ優先順位
+## GPU プロバイダ（コスト順）
 
-| 優先度 | プロバイダ | コスト | 用途 |
-|--------|-----------|--------|------|
-| 1 | HF Inference API | 無料 (HF Pro $9/月) | API 対応モデル |
-| 2 | Colab Pro | $9.99/月 | ~30B まで、Chrome MCP |
-| 3 | Modal | 従量制 ($0.59-3.95/hr) | 30B+、サーバーレス |
-| 4 | beam.cloud | 従量制 ($0.54-3.50/hr) | 専用エンドポイント |
+プロバイダは `.env` のトークン有無を確認し、コスト最安のものを自動選択。
+
+| プロバイダ | 必要トークン | 料金 | 用途 |
+|-----------|------------|------|------|
+| HF Inference API | HF_TOKEN | 無料 (HF Pro $9/月) | API 対応モデル |
+| HF Inference Endpoints | HF_TOKEN | $0.50–2.50/hr | 任意 HF モデル |
+| Colab Pro | なし | $9.99/月 サブスク | ~30B、Chrome MCP |
+| Modal | MODAL_TOKEN_ID/SECRET | $0.59–3.95/hr ($30/月無料) | サーバーレス |
+| beam.cloud | BEAM_TOKEN | $0.54–3.50/hr | 専用エンドポイント |
 
 ## 開発
 

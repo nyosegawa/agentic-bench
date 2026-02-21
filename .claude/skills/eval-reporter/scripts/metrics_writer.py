@@ -34,7 +34,7 @@ VALID_MODEL_TYPES = {
     "unknown",
 }
 
-VALID_PROVIDERS = {"hf_inference", "colab", "modal", "beam", "api", "local"}
+VALID_PROVIDERS = {"hf_inference", "hf_endpoints", "colab", "modal", "beam", "api", "local"}
 
 VALID_STAGE_STATUSES = {"pass", "fail", "skip"}
 

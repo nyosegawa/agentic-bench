@@ -81,11 +81,17 @@ class TestRecommendGpu:
         assert "A100-40GB" not in gpu_names
         assert "A100-80GB" in gpu_names or "H100" in gpu_names
 
-    def test_colab_preferred_over_modal(self):
+    def test_sorted_by_cheapest_hourly(self):
         recs = recommend_gpu(10.0)
-        # First recommendation with T4 should be colab
+        # Recommendations should be sorted by hourly rate (cheapest first)
+        rates = [r["hourly_rate_usd"] for r in recs if r["hourly_rate_usd"] is not None]
+        assert rates == sorted(rates)
+
+    def test_t4_cheapest_is_hf_endpoints(self):
+        recs = recommend_gpu(10.0)
         t4_recs = [r for r in recs if r["gpu"] == "T4"]
-        assert t4_recs[0]["provider"] == "colab"
+        # hf_endpoints T4 ($0.50) is cheapest
+        assert t4_recs[0]["provider"] == "hf_endpoints"
 
     def test_no_recommendation_for_huge(self):
         recs = recommend_gpu(200.0)  # 200GB — nothing fits

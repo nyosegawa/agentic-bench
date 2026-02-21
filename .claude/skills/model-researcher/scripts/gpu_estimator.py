@@ -37,32 +37,59 @@ BYTES_PER_PARAM = {
 
 # Available GPUs sorted by VRAM
 GPUS = [
-    {"name": "T4", "vram_gb": 16, "providers": ["colab"]},
-    {"name": "L4", "vram_gb": 24, "providers": ["colab", "modal"]},
+    {"name": "T4", "vram_gb": 16, "providers": ["hf_endpoints", "colab", "modal", "beam"]},
+    {"name": "L4", "vram_gb": 24, "providers": ["hf_endpoints", "colab", "modal"]},
+    {"name": "A10G", "vram_gb": 24, "providers": ["hf_endpoints", "beam"]},
     {"name": "A100-40GB", "vram_gb": 40, "providers": ["colab", "modal", "beam"]},
-    {"name": "A100-80GB", "vram_gb": 80, "providers": ["modal", "beam"]},
+    {"name": "L40S", "vram_gb": 48, "providers": ["hf_endpoints"]},
+    {"name": "A100-80GB", "vram_gb": 80, "providers": ["hf_endpoints", "modal", "beam"]},
     {"name": "H100", "vram_gb": 80, "providers": ["modal", "beam"]},
 ]
 
-# Provider priority (lower = preferred)
-PROVIDER_PRIORITY = {
-    "hf_inference": 0,
-    "colab": 1,
-    "modal": 2,
-    "beam": 3,
+# Provider env var requirements — used to check which providers are available
+PROVIDER_ENV_VARS: dict[str, list[str]] = {
+    "hf_inference": ["HF_TOKEN"],
+    "hf_endpoints": ["HF_TOKEN"],
+    "colab": [],  # Chrome MCP, no token needed
+    "modal": ["MODAL_TOKEN_ID", "MODAL_TOKEN_SECRET"],
+    "beam": ["BEAM_TOKEN"],
 }
 
-# GPU pricing per hour (USD) by provider — updated 2025-02
+# Provider cost priority (lower = cheaper, used as tiebreaker)
+PROVIDER_COST_RANK = {
+    "hf_inference": 0,
+    "hf_endpoints": 1,
+    "colab": 2,
+    "modal": 3,
+    "beam": 4,
+}
+
+# GPU pricing per hour (USD) by provider — updated 2026-02
 GPU_PRICING: dict[str, dict[str, float]] = {
+    "hf_endpoints": {
+        "T4": 0.50,
+        "L4": 0.80,
+        "A10G": 1.00,
+        "L40S": 1.80,
+        "A100-80GB": 2.50,
+    },
     "colab": {"T4": 1.17, "L4": 2.50, "A100-40GB": 6.20},
-    "modal": {"T4": 0.59, "L4": 0.80, "A100-40GB": 2.10, "A100-80GB": 2.50, "H100": 3.95},
+    "modal": {
+        "T4": 0.59,
+        "L4": 0.80,
+        "A100-40GB": 2.10,
+        "A100-80GB": 2.50,
+        "H100": 3.95,
+    },
     "beam": {"T4": 0.54, "A100-40GB": 2.75, "H100": 3.50},
 }
 
-# Flat monthly subscriptions (included in cost context)
-SUBSCRIPTION_COSTS: dict[str, dict[str, float]] = {
+# Monthly subscriptions context
+SUBSCRIPTION_COSTS: dict[str, dict[str, float | str]] = {
     "hf_inference": {"monthly_usd": 9.0, "note": "HF Pro — included inference credits"},
+    "hf_endpoints": {"monthly_usd": 0.0, "note": "Pay-as-you-go, HF_TOKEN only"},
     "colab": {"monthly_usd": 9.99, "note": "Colab Pro — included compute units"},
+    "modal": {"monthly_usd": 0.0, "note": "$30/mo free compute credits"},
 }
 
 # Estimated benchmark duration in minutes by model type
@@ -92,20 +119,29 @@ def estimate_vram(param_count: int, quant: str = "fp16") -> float:
 
 
 def recommend_gpu(vram_required_gb: float) -> list[dict]:
-    """Return list of suitable GPUs, sorted by provider priority."""
+    """Return GPUs sorted by hourly cost (cheapest first), then provider rank."""
     suitable = []
     for gpu in GPUS:
         if gpu["vram_gb"] >= vram_required_gb:
             for provider in gpu["providers"]:
+                hourly = GPU_PRICING.get(provider, {}).get(gpu["name"])
                 suitable.append(
                     {
                         "gpu": gpu["name"],
                         "vram_gb": gpu["vram_gb"],
                         "provider": provider,
-                        "priority": PROVIDER_PRIORITY[provider],
+                        "cost_rank": PROVIDER_COST_RANK.get(provider, 99),
+                        "hourly_rate_usd": hourly,
                     }
                 )
-    suitable.sort(key=lambda x: (x["priority"], x["vram_gb"]))
+    # Sort: cheapest hourly rate first, then provider rank as tiebreaker
+    # None rates (unknown pricing) go last
+    suitable.sort(
+        key=lambda x: (
+            x["hourly_rate_usd"] if x["hourly_rate_usd"] is not None else 999,
+            x["cost_rank"],
+        )
+    )
     return suitable
 
 
@@ -169,7 +205,9 @@ def estimate(param_count: int, quant: str = "fp16", model_type: str = "unknown")
     for rec in recommendations:
         cost = estimate_cost(rec["gpu"], rec["provider"], model_type)
         rec["estimated_cost_usd"] = cost["estimated_cost_usd"]
-        rec["hourly_rate_usd"] = cost["hourly_rate_usd"]
+        # hourly_rate_usd already set by recommend_gpu, keep estimate_cost note if present
+        if cost.get("note"):
+            rec["note"] = cost["note"]
 
     result = {
         "param_count": param_count,
