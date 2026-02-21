@@ -232,27 +232,44 @@ Agent の動き:
 
 ```
 agentic-bench/
+├── .claude/
+│   └── skills/                           # Claude Code Agent Skills
+│       ├── agentic-bench/                # メインスキル
+│       │   ├── SKILL.md                  # 探索的モデル検証の指示書
+│       │   └── references/
+│       │       ├── providers.md          # プロバイダ別の使い方・Tips
+│       │       └── report-format.md      # レポートフォーマット仕様
+│       ├── beam-deploy/                  # beam.cloud 専用スキル
+│       │   ├── SKILL.md
+│       │   └── references/
+│       │       └── beam-sdk.md           # beam.cloud SDK リファレンス
+│       └── colab-runner/                 # Colab 専用スキル
+│           ├── SKILL.md
+│           └── references/
+│               └── chrome-mcp-tips.md    # Chrome MCP での Colab 操作 Tips
 ├── src/
-│   ├── utils/                    # Agent が使えるユーティリティ
-│   │   ├── hf_model_info.py     # HF model card の情報取得
-│   │   ├── gpu_estimator.py     # モデルサイズから VRAM 推定
-│   │   ├── report_generator.py  # HTML レポートのテンプレート
-│   │   └── metrics_writer.py    # metrics.json の書き出し
-│   └── providers/               # プロバイダとのインターフェース
-│       ├── colab_helpers.py     # Colab 操作のヘルパー
-│       ├── modal_helpers.py     # Modal デプロイヘルパー
-│       └── beam_helpers.py      # beam.cloud ヘルパー
-├── skills/                      # Agent Skills (指示書)
-│   ├── agentic-bench.md         # メインスキル
-│   ├── beam-deploy.md           # beam.cloud 専用
-│   └── colab-runner.md          # Colab 専用
-└── results/                     # 検証結果
+│   ├── utils/                            # Agent が使えるユーティリティ（任意）
+│   │   ├── hf_model_info.py
+│   │   ├── gpu_estimator.py
+│   │   ├── report_generator.py
+│   │   └── metrics_writer.py
+│   └── providers/                        # プロバイダヘルパー（定型処理）
+│       ├── colab_helpers.py
+│       ├── modal_helpers.py
+│       └── beam_helpers.py
+└── results/                              # 検証結果
 ```
+
+**Skill の構造は Claude Code の規約に従う:**
+- `.claude/skills/<skill-name>/SKILL.md` が本体（YAML frontmatter + Markdown 指示書）
+- `references/` に詳細なリファレンスを Progressive Disclosure で配置
+- SKILL.md の description でトリガー条件を定義
 
 Agent は:
 - utils/ のコードを**使っても使わなくても良い**
 - 状況に応じて**新しいコードを書いても良い**
 - providers/ のヘルパーは**プロバイダ固有の定型処理を楽にするためのもの**
+- references/ は**必要な時だけコンテキストにロード**される
 
 ---
 
