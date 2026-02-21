@@ -1,0 +1,28 @@
+{
+  "run_id": "2026-02-21T00:00:00+00:00",
+  "model": "zai-org/GLM-OCR",
+  "model_type": "vlm",
+  "provider": "modal",
+  "gpu": "T4",
+  "stages": {
+    "smoke": {
+      "status": "pass",
+      "load_time_seconds": 16.95,
+      "notes": "Model loaded successfully on T4. VRAM usage: 2.34 GB."
+    },
+    "quality": {
+      "outputs": [
+        "artifacts/benchmark_results.json"
+      ],
+      "notes": "5/6 tests passed. Text recognition (EN/JA), table recognition, and information extraction all perfect. Math formula recognition outputs correct LaTeX but test matching was too strict (false negative). Effective quality: 6/6."
+    },
+    "performance": {
+      "tokens_per_second": 4.1,
+      "latency_p50_ms": 3138,
+      "latency_p99_ms": 4140,
+      "num_runs": 5
+    }
+  },
+  "cost_usd": 0.15,
+  "duration_seconds": 300
+}
