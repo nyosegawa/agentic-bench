@@ -29,6 +29,17 @@ Run the helper script to pull structured metadata:
 python .claude/skills/model-researcher/scripts/hf_model_info.py MODEL_ID
 ```
 
+To check if the model is available on HF Inference API (serverless):
+```bash
+python .claude/skills/model-researcher/scripts/hf_inference_check.py MODEL_ID
+```
+
+To search for similar or alternative models:
+```bash
+python .claude/skills/model-researcher/scripts/hf_model_search.py --task llm --sort downloads --limit 10
+python .claude/skills/model-researcher/scripts/hf_model_search.py --search "qwen" --limit 5
+```
+
 If the script fails or the model is not on HuggingFace:
 - Search the web for the model's official page, paper, or GitHub repo
 - Manually gather: architecture, parameter count, input/output modalities, license
@@ -51,6 +62,9 @@ Classify the model and load the appropriate evaluation guide:
 | Model Type | Reference File | Key Metrics |
 |-----------|---------------|------------|
 | LLM (text-to-text) | `references/eval-llm.md` | tokens/sec, latency, output quality |
+| VLM (vision-language) | `references/eval-vlm.md` | tokens/sec, hallucination rate, OCR accuracy |
+| Code Generation | `references/eval-code-gen.md` | tokens/sec, pass@1, FIM accuracy |
+| Embedding | `references/eval-embedding.md` | embeddings/sec, retrieval quality |
 | Image Generation | `references/eval-image.md` | sec/image, visual quality |
 | TTS (text-to-speech) | `references/eval-tts.md` | RTF, audio quality |
 | Time Series | `references/eval-timeseries.md` | MAE/RMSE, prediction accuracy |
